@@ -1,0 +1,11 @@
+framework module moyoung_glasses_ble_plugin {
+  umbrella header "moyoung_glasses_ble_plugin-umbrella.h"
+
+  export *
+  module * { export * }
+}
+
+module moyoung_glasses_ble_plugin.Swift {
+  header "moyoung_glasses_ble_plugin-Swift.h"
+  requires objc
+}

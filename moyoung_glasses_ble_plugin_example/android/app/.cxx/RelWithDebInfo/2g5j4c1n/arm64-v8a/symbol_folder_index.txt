@@ -1,0 +1,1 @@
+/Users/mac_mini/Desktop/项目/魔样股份/flutter-watch-sdk/moyoung_ble_plugin/example/build/app/intermediates/cxx/RelWithDebInfo/2g5j4c1n/obj/arm64-v8a

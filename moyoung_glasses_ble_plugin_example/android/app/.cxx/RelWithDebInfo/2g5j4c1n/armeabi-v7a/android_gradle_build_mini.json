@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Users/mac_mini/Documents/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/mac_mini/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/mac_mini/Desktop/项目/魔样股份/flutter-watch-sdk/moyoung_ble_plugin/example/android/app/.cxx/RelWithDebInfo/2g5j4c1n/armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/mac_mini/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/mac_mini/Desktop/项目/魔样股份/flutter-watch-sdk/moyoung_ble_plugin/example/android/app/.cxx/RelWithDebInfo/2g5j4c1n/armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

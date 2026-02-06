@@ -1,0 +1,64 @@
+# Uncomment this line to define a global platform for your project
+platform :ios, '12.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+# 使用 CDN 源
+source 'https://cdn.cocoapods.org/'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+  pod 'SwiftProtobuf', '1.29.0'
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      # 设置最低部署目标
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      # 排除模拟器架构以避免冲突
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386 arm64'
+      # 不支持 BITCODE
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+      # 解决swift模块问题
+      config.build_settings['SWIFT_VERSION'] = '5.0'
+      # 只构建活动架构
+      config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+      # 设置有效架构
+      config.build_settings['VALID_ARCHS'] = 'arm64'
+      
+      # 特殊处理 SwiftProtobuf 符号兼容性
+      if target.name == 'SwiftProtobuf'
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+        config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
+      end
+    end
+  end
+end
