@@ -30,6 +30,16 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 
 flutter_ios_podfile_setup
 
+pre_install do |installer|
+  installer.pod_targets.each do |pod|
+    if pod.name == 'moyoung_ble_plugin'
+      def pod.build_type
+        Pod::BuildType.dynamic_framework
+      end
+    end
+  end
+end
+
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
@@ -44,20 +54,24 @@ post_install do |installer|
       # 设置最低部署目标
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
       # 排除模拟器架构以避免冲突
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386 arm64'
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
       # 不支持 BITCODE
       config.build_settings['ENABLE_BITCODE'] = 'NO'
       # 解决swift模块问题
       config.build_settings['SWIFT_VERSION'] = '5.0'
-      # 只构建活动架构
-      config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
-      # 设置有效架构
-      config.build_settings['VALID_ARCHS'] = 'arm64'
       
       # 特殊处理 SwiftProtobuf 符号兼容性
       if target.name == 'SwiftProtobuf'
         config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
         config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
+      end
+
+      # Xcode 26.2 + HandyJSON 在 Release 优化阶段存在 Swift 编译器崩溃
+      # 对 HandyJSON 单独降优化，避免触发 LLVM verify 崩溃。
+      if target.name == 'HandyJSON'
+        config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'
+        config.build_settings['SWIFT_COMPILATION_MODE'] = 'singlefile'
+        config.build_settings['SWIFT_ENABLE_BATCH_MODE'] = 'NO'
       end
     end
   end

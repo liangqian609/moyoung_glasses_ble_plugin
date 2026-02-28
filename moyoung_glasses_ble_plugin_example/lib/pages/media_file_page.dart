@@ -61,7 +61,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
   }
 
   String _getFileSyncStatusText() {
-    return _isFileSyncEnabled ? '已进入' : '未进入';
+    return _isFileSyncEnabled ? AppStrings.entered : AppStrings.notEntered;
   }
 
   Color _getFileSyncStatusColor() {
@@ -70,12 +70,12 @@ class _MediaFilePageState extends State<MediaFilePage> {
 
   String _getWifiConnectionStatusText() {
     if (_isWifiConnecting || _wifiConnectionStatus == 'connecting') {
-      return '连接中';
+      return AppStrings.connectingStatus;
     }
     if (_wifiConnectionStatus == 'connected') {
-      return '已连接';
+      return AppStrings.connectedSimple;
     }
-    return '未连接';
+    return AppStrings.notConnected;
   }
 
   Color _getWifiConnectionStatusColor() {
@@ -170,18 +170,18 @@ class _MediaFilePageState extends State<MediaFilePage> {
     final int estimatedFileCount = _bleTotal > 0 ? _bleTotal : _files.length;
     if (estimatedFileCount <= 0) {
       print('下载被阻止：当前可下载文件数为 0');
-      ToastUtil.showToast('当前没有可下载文件，请先刷新文件列表');
+      ToastUtil.showToast(AppStrings.noDownloadableFiles);
       return;
     }
 
     if (!_isWifiEnabled) {
       print('下载被阻止：设备 Wi-Fi 尚未连接成功');
-      ToastUtil.showToast('请先连接设备 Wi-Fi，再下载文件');
+      ToastUtil.showToast(AppStrings.connectWifiBeforeDownload);
       return;
     }
 
     if (_downloadPath.isEmpty) {
-      ToastUtil.showToast('无法获取下载目录');
+      ToastUtil.showToast(AppStrings.unableToGetDownloadDir);
       return;
     }
 
@@ -198,7 +198,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
         print('下载调用超时：90秒未完成，自动结束本次下载状态');
         return {
           'success': false,
-          'message': '下载超时，请检查设备连接状态后重试',
+          'message': AppStrings.downloadTimeoutRetry,
           'successCount': 0,
           'failCount': estimatedFileCount,
         };
@@ -218,10 +218,10 @@ class _MediaFilePageState extends State<MediaFilePage> {
       await _queryBleFileCount();
 
       if (failCount == 0) {
-        ToastUtil.showToast('下载完成：$successCount 个文件');
+        ToastUtil.showToast(AppStrings.downloadCompletedCount(successCount));
       } else {
         print('下载有失败项: successCount=$successCount, failCount=$failCount, message=$message');
-        ToastUtil.showToast('下载完成：成功 $successCount，失败 $failCount${message.isNotEmpty ? "（$message）" : ""}');
+        ToastUtil.showToast(AppStrings.downloadCompletedWithFailure(successCount, failCount, message));
       }
       
       // 下载完成后重置 Wi-Fi 和文件同步状态
@@ -232,7 +232,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
       print('下载完成，已重置 Wi-Fi 和文件同步状态');
     } catch (e) {
       print('下载失败: $e');
-      ToastUtil.showToast('下载失败: $e');
+      ToastUtil.showToast(AppStrings.downloadFailedWithError('$e'));
     } finally {
       if (mounted) {
         setState(() {
@@ -308,7 +308,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
           setState(() {
             _wifiConnectionStatus = 'connecting';
           });
-          ToastUtil.showToast(message.isNotEmpty ? message : '请查看系统弹窗，点击"加入"连接 Wi-Fi');
+          ToastUtil.showToast(message.isNotEmpty ? message : AppStrings.wifiJoinPrompt);
         } else if (status == 'configured') {
           if (_isWifiEnabled || _wifiConnectionStatus == 'connected') {
             print('ℹ️ 已连接成功，忽略后续 configured 事件');
@@ -319,7 +319,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
             setState(() {
               _wifiConnectionStatus = 'connecting';
             });
-            ToastUtil.showToast(message.isNotEmpty ? message : '配置已应用，请点击系统弹窗中的"加入"');
+            ToastUtil.showToast(message.isNotEmpty ? message : AppStrings.wifiConfigAppliedPrompt);
           }
         } else if (status == 'success') {
           print('✅ 设备 Wi-Fi 连接成功');
@@ -331,7 +331,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
 
           _queryBleFileCount();
 
-          ToastUtil.showToast(message.isNotEmpty ? message : '设备 Wi-Fi 连接成功');
+          ToastUtil.showToast(message.isNotEmpty ? message : AppStrings.deviceWifiConnected);
         } else if (status == 'error' || status == 'failed' || status == 'disconnected') {
           print('❌ 设备 Wi-Fi 连接失败: $message');
           setState(() {
@@ -339,7 +339,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
             _isWifiEnabled = false;
             _isWifiConnecting = false; // 取消 loading
           });
-          ToastUtil.showToast('设备 Wi-Fi 连接失败: $message');
+          ToastUtil.showToast(AppStrings.deviceWifiConnectFailed(message));
         } else {
           print('ℹ️ 未处理的 wifi_connection 状态: $status');
         }
@@ -416,7 +416,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
               _wifiConnectionStatus = 'disconnected';
               _isWifiConnecting = false;
             });
-            ToastUtil.showToast('连接设备 Wi-Fi 失败: $e');
+            ToastUtil.showToast(AppStrings.connectDeviceWifiFailed('$e'));
           }
         } else if (!fileSync && _isFileSyncEnabled) {
           print('MediaFilePage 更新 _isFileSyncEnabled 为 false');
@@ -453,7 +453,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
       _applyBleFileCount(countMap, source: reason.isNotEmpty ? 'event:$reason' : 'event');
 
       if (reason == 'change' && _isFileSyncEnabled) {
-        ToastUtil.showToast('设备有新文件');
+        ToastUtil.showToast(AppStrings.deviceHasNewFiles);
       }
     }, onDone: () {
       print('mediaFileCountEveStm: 监听结束');
@@ -536,7 +536,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
               children: [
                 Expanded(
                   child: _buildStatusTag(
-                    label: '文件同步',
+                    label: AppStrings.fileSync,
                     value: _getFileSyncStatusText(),
                     color: _getFileSyncStatusColor(),
                     icon: Icons.sync,
@@ -545,7 +545,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildStatusTag(
-                    label: 'Wi-Fi连接',
+                    label: AppStrings.wifiConnection,
                     value: _getWifiConnectionStatusText(),
                     color: _getWifiConnectionStatusColor(),
                     icon: Icons.wifi,
@@ -569,7 +569,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                               color: Colors.white,
                             ),
                           ),
-                          label: Text('连接中...'),
+                          label: Text(AppStrings.connectingStatus),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.grey,
                           ),
@@ -613,7 +613,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '文件统计',
+                    AppStrings.fileStatistics,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -633,7 +633,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                           ElevatedButton.icon(
                             onPressed: _getMediaFileList,
                             icon: Icon(Icons.refresh, size: 14),
-                            label: Text('刷新文件'),
+                            label: Text(AppStrings.refreshFiles),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
@@ -647,7 +647,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                           ElevatedButton.icon(
                             onPressed: canDownload ? _downloadFiles : null,
                             icon: Icon(Icons.download, size: 14),
-                            label: Text('下载文件'),
+                            label: Text(AppStrings.downloadFiles),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: canDownload ? Colors.green : Colors.grey,
                               foregroundColor: Colors.white,
@@ -669,13 +669,13 @@ class _MediaFilePageState extends State<MediaFilePage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildStatItem('图片', '$_blePicture', Icons.image, color: Colors.green[700]!),
+                    child: _buildStatItem(AppStrings.image, '$_blePicture', Icons.image, color: Colors.green[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem('视频', '$_bleVideo', Icons.videocam, color: Colors.orange[700]!),
+                    child: _buildStatItem(AppStrings.video, '$_bleVideo', Icons.videocam, color: Colors.orange[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem('音频', '$_bleAudio', Icons.audiotrack, color: Colors.purple[700]!),
+                    child: _buildStatItem(AppStrings.audio, '$_bleAudio', Icons.audiotrack, color: Colors.purple[700]!),
                   ),
                 ],
               ),
@@ -683,13 +683,13 @@ class _MediaFilePageState extends State<MediaFilePage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildStatItem('图片', '0', Icons.image, color: Colors.green[700]!),
+                    child: _buildStatItem(AppStrings.image, '0', Icons.image, color: Colors.green[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem('视频', '0', Icons.videocam, color: Colors.orange[700]!),
+                    child: _buildStatItem(AppStrings.video, '0', Icons.videocam, color: Colors.orange[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem('音频', '0', Icons.audiotrack, color: Colors.purple[700]!),
+                    child: _buildStatItem(AppStrings.audio, '0', Icons.audiotrack, color: Colors.purple[700]!),
                   ),
                 ],
               ),
@@ -753,7 +753,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '下载中心',
+                    AppStrings.downloadCenter,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -763,7 +763,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 ElevatedButton.icon(
                   onPressed: _localDownloadedFiles.isEmpty ? null : _deleteAllLocalFiles,
                   icon: const Icon(Icons.delete_sweep, size: 16),
-                  label: const Text('删除全部'),
+                  label: Text(AppStrings.deleteAll),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
@@ -784,10 +784,10 @@ class _MediaFilePageState extends State<MediaFilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('本地文件', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text(AppStrings.localFiles, style: const TextStyle(fontSize: 12, color: Colors.black54)),
                         const SizedBox(height: 2),
                         Text(
-                          '${_localDownloadedFiles.length} 个',
+                          '${_localDownloadedFiles.length} ${AppStrings.files}',
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -805,7 +805,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('目录总大小', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text(AppStrings.totalDirectorySize, style: const TextStyle(fontSize: 12, color: Colors.black54)),
                         const SizedBox(height: 2),
                         Text(
                           _formatFileSize(totalSizeBytes),
@@ -829,7 +829,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.center,
                 child: Text(
-                  '目录中暂无已下载文件',
+                  AppStrings.noDownloadedFilesInDirectory,
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               )
@@ -883,7 +883,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                           const SizedBox(width: 6),
                           TextButton(
                             onPressed: () => _openLocalFile(file.path),
-                            child: const Text('查看'),
+                            child: Text(AppStrings.view),
                           ),
                         ],
                       ),
@@ -1017,7 +1017,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '下载进度：等待开始',
+                  AppStrings.downloadProgressWaitingStart,
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
               ),
@@ -1055,7 +1055,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
       await widget.glassesPlugin.enableWifi(
         wifiType: 1, // 1-文件同步模式
       );
-      ToastUtil.showToast('Wi-Fi 已开启，等待文件同步状态后自动连接...');
+      ToastUtil.showToast(AppStrings.wifiEnabledWaitingAutoConnect);
       print('Wi-Fi 开启成功，等待 fileSync=true 后自动连接设备 Wi-Fi');
     } catch (e) {
       print('开启 Wi-Fi 失败: $e');
@@ -1134,7 +1134,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
       });
     } catch (e) {
       print('加载本地下载文件失败: $e');
-      ToastUtil.showToast('加载本地文件失败');
+      ToastUtil.showToast(AppStrings.loadLocalFilesFailed);
     } finally {
       if (mounted) {
         setState(() {
@@ -1148,18 +1148,18 @@ class _MediaFilePageState extends State<MediaFilePage> {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
-        ToastUtil.showToast('文件不存在，已刷新列表');
+        ToastUtil.showToast(AppStrings.localFileNotExistRefreshed);
         await _loadLocalDownloadedFiles();
         return;
       }
 
       final result = await OpenFilex.open(filePath);
       if (result.type != ResultType.done) {
-        ToastUtil.showToast('当前设备不支持直接打开该文件');
+        ToastUtil.showToast(AppStrings.fileOpenNotSupported);
       }
     } catch (e) {
       print('打开本地文件失败: $e');
-      ToastUtil.showToast('打开文件失败: $e');
+      ToastUtil.showToast(AppStrings.openFileFailedWithError('$e'));
     }
   }
 
@@ -1171,7 +1171,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
     try {
       if (_downloadPath.isEmpty) {
         print('删除全部本地文件失败: 下载目录为空');
-        ToastUtil.showToast('删除失败：下载目录为空');
+        ToastUtil.showToast(AppStrings.deleteFailedEmptyDownloadDir);
         return;
       }
 
@@ -1179,7 +1179,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
       if (!await directory.exists()) {
         print('删除全部本地文件: 目录不存在，path=$_downloadPath');
         await _loadLocalDownloadedFiles();
-        ToastUtil.showToast('目录不存在，无需删除');
+        ToastUtil.showToast(AppStrings.deleteSkippedDirNotExist);
         return;
       }
 
@@ -1197,10 +1197,10 @@ class _MediaFilePageState extends State<MediaFilePage> {
         }
       }
       await _loadLocalDownloadedFiles();
-      ToastUtil.showToast('已清空下载目录，共删除 $deletedCount 项');
+      ToastUtil.showToast(AppStrings.clearedDownloadDirCount(deletedCount));
     } catch (e) {
       print('删除全部本地文件失败: $e');
-      ToastUtil.showToast('删除全部失败: $e');
+      ToastUtil.showToast(AppStrings.deleteAllFailedWithError('$e'));
     }
   }
 
@@ -1209,16 +1209,16 @@ class _MediaFilePageState extends State<MediaFilePage> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除全部'),
-        content: const Text('确认清空下载目录中的全部文件吗？此操作不可恢复。'),
+        title: Text(AppStrings.confirmDeleteAll),
+        content: Text(AppStrings.confirmDeleteAllContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppStrings.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除全部'),
+            child: Text(AppStrings.deleteAll),
           ),
         ],
       ),

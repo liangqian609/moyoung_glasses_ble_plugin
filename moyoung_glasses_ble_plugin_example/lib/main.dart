@@ -18,6 +18,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'l10n/app_strings.dart';
 import 'utils/locale_manager.dart';
 import 'pages/media_file_page.dart';
+import 'dual_plugin_example.dart';
 
 //region 数据类定义
 
@@ -726,6 +727,10 @@ class _MyAppState extends State<MyApp> {
                     // 状态卡片
                     _buildStatusCard(),
                     const SizedBox(height: 20),
+
+                    // 双插件验证入口
+                    _buildDualPluginEntrySection(),
+                    const SizedBox(height: 20),
                     
                     // 基础功能
                     _buildBasicFunctionSection(),
@@ -785,11 +790,6 @@ class _MyAppState extends State<MyApp> {
                     // 设备管理功能
                     _buildDeviceManagementSection(),
                     const SizedBox(height: 20),
-
-                    // 实时运行状态显示
-                    _buildRealtimeStatusSection(),
-
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -925,12 +925,6 @@ class _MyAppState extends State<MyApp> {
           _queryDeviceVersion,
           subtitle: _deviceVersion,
         ),
-        _buildApiButton(
-          AppStrings.getRunningStatus,
-          Icons.speed,
-          _getRunningStatus,
-          subtitle: _runningStatus,
-        ),
         // 语言设置
         Row(
           children: [
@@ -954,6 +948,30 @@ class _MyAppState extends State<MyApp> {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDualPluginEntrySection() {
+    return _buildSectionCard(
+      title: AppStrings.dualPluginVerification,
+      icon: Icons.devices,
+      children: [
+        Builder(
+          builder: (BuildContext context) => _buildApiButton(
+            AppStrings.enterDualPluginPage,
+            Icons.open_in_new,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) => const DualPluginExample(),
+                ),
+              );
+            },
+            subtitle: AppStrings.verifyGlassesWatchTogether,
+          ),
         ),
       ],
     );
@@ -2015,30 +2033,30 @@ class _MyAppState extends State<MyApp> {
           enabled: _isConnected,
         ),
         _buildApiButton(
-          '重启设备',
+          AppStrings.restartDevice,
           Icons.refresh,
           _restartDevice,
-          subtitle: '重启',
+          subtitle: AppStrings.restartDevice,
           enabled: _isConnected,
         ),
         Row(
           children: [
             Expanded(
               child: _buildApiButton(
-                '关机',
+                AppStrings.shutdownDevice,
                 Icons.power_off,
                 _shutdownDevice,
-                subtitle: '关机',
+                subtitle: AppStrings.shutdownDevice,
                 enabled: _isConnected,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: _buildApiButton(
-                '重置设备',
+                AppStrings.factoryReset,
                 Icons.restore,
                 _resetDevice,
-                subtitle: '重置',
+                subtitle: AppStrings.factoryReset,
                 enabled: _isConnected,
               ),
             ),
@@ -2048,53 +2066,6 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Widget _buildRealtimeStatusSection() {
-    return _buildSectionCard(
-      title: AppStrings.realtimeStatus,
-      icon: Icons.speed,
-      children: [
-        // 实时运行状态显示
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.play_circle_outline, size: 20, color: Colors.green[700]),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppStrings.deviceRunningStatus,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _runningStatus == AppStrings.clickToGet ? AppStrings.clickToQueryOrAutoUpdate : _runningStatus,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.green[700],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   //endregion
 

@@ -77,6 +77,16 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 
 flutter_ios_podfile_setup
 
+pre_install do |installer|
+  installer.pod_targets.each do |pod|
+    if pod.name == 'moyoung_ble_plugin'
+      def pod.build_type
+        Pod::BuildType.dynamic_framework
+      end
+    end
+  end
+end
+
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
@@ -93,19 +103,13 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
       # 排除模拟器架构以避免冲突
       # Exclude simulator architectures to avoid conflicts
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386 arm64'
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
       # 不支持 BITCODE
       # Disable BITCODE
       config.build_settings['ENABLE_BITCODE'] = 'NO'
       # 解决swift模块问题
       # Fix Swift module issues
       config.build_settings['SWIFT_VERSION'] = '5.0'
-      # 只构建活动架构
-      # Build active architecture only
-      config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
-      # 设置有效架构
-      # Set valid architectures
-      config.build_settings['VALID_ARCHS'] = 'arm64'
       
       # 特殊处理 SwiftProtobuf 符号兼容性
       # Special handling for SwiftProtobuf symbol compatibility
@@ -113,10 +117,60 @@ post_install do |installer|
         config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
         config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
       end
+
+      # Xcode 26.2 + HandyJSON 在 Release 优化阶段存在 Swift 编译器崩溃
+      # Xcode 26.2 + HandyJSON may crash during Release optimization stage
+      if target.name == 'HandyJSON'
+        config.build_settings['SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'
+        config.build_settings['SWIFT_COMPILATION_MODE'] = 'singlefile'
+        config.build_settings['SWIFT_ENABLE_BATCH_MODE'] = 'NO'
+      end
     end
   end
 end
 ```
+
+#### 2.1.1 双插件集成防重复类加载（必配）
+#### 2.1.1 Prevent Duplicate Class Loading in Dual-Plugin Integration (Required)
+
+当 `moyoung_glasses_ble_plugin` 与 `moyoung_ble_plugin` 同时接入时，iOS 可能出现以下运行时告警：
+
+When integrating `moyoung_glasses_ble_plugin` and `moyoung_ble_plugin` together, iOS may report runtime warnings like:
+
+`Class XXX is implemented in both .../Runner and .../CRPSmartBand.framework`
+
+请在你的 `ios/Podfile` 中增加以下 `pre_install` 配置：
+
+Please add the following `pre_install` block in your `ios/Podfile`:
+
+```ruby
+pre_install do |installer|
+  installer.pod_targets.each do |pod|
+    if pod.name == 'moyoung_ble_plugin'
+      def pod.build_type
+        Pod::BuildType.dynamic_framework
+      end
+    end
+  end
+end
+```
+
+然后重新安装 pods：
+
+Then reinstall pods:
+
+```bash
+cd ios
+pod install
+```
+
+验证标准：
+
+Verification criteria:
+- App 启动日志不再出现 `Class XXX is implemented in both ...`。
+- No `Class XXX is implemented in both ...` warnings at app startup.
+- 眼镜与手表功能均可正常连接与通信。
+- Both glasses and watch features can connect and communicate normally.
 
 #### 2.2 配置 Info.plist
 #### 2.2 Configure Info.plist
@@ -148,6 +202,14 @@ Open the `ios/Runner/Info.plist` file and add the following configuration inside
 <key>NEHotspotConfiguration</key>
 <true/>
 
+<!-- URL Scheme 查询权限（用于跳转到系统设置） -->
+<!-- URL Scheme query permission (for jumping to system settings) -->
+<key>LSApplicationQueriesSchemes</key>
+<array>
+    <string>App-Prefs</string>
+    <string>app-settings</string>
+</array>
+
 <!-- 存储权限（文件下载功能需要） -->
 <!-- Storage permission (required for file download feature) -->
 <key>NSDocumentsFolderUsageDescription</key>
@@ -165,6 +227,43 @@ Open the `ios/Runner/Info.plist` file and add the following configuration inside
     <string>bluetooth-peripheral</string>
 </array>
 ```
+
+#### 2.3 Wi-Fi 连接所需的关键权限
+#### 2.3 Key Permissions Required for Wi-Fi Connection
+
+要使用 Wi-Fi 文件同步功能，需要以下三个关键权限：
+
+To use the Wi-Fi file sync feature, the following three key permissions are required:
+
+1. **Access Wi-Fi Information**（在开发者后台启用）
+   **Access Wi-Fi Information** (Enable in Developer Portal)
+   - 登录 Apple Developer 后台
+   - 选择你的 App ID
+   - 在 Capabilities 中启用 "Access Wi-Fi Information"
+   - Log in to Apple Developer Portal
+   - Select your App ID
+   - Enable "Access Wi-Fi Information" in Capabilities
+
+2. **Hotspot Configuration Permission**（NEHotspotConfiguration）
+   **Hotspot Configuration Permission** (NEHotspotConfiguration)
+   - 已在上述 Info.plist 中配置
+   - 允许应用配置 Wi-Fi 网络
+   - Configured in Info.plist above
+   - Allows app to configure Wi-Fi networks
+
+3. **Location Permission**（NSLocationWhenInUseUsageDescription）
+   **Location Permission** (NSLocationWhenInUseUsageDescription)
+   - iOS 要求获取位置权限才能访问 Wi-Fi 信息
+   - 已在上述 Info.plist 中配置
+   - iOS requires location permission to access Wi-Fi information
+   - Configured in Info.plist above
+
+⚠️ **重要提示**：
+⚠️ **Important Notes**:
+- 缺少任一权限都可能导致 Wi-Fi 连接失败
+- Missing any of these permissions may cause Wi-Fi connection to fail
+- "Access Wi-Fi Information" 必须在开发者后台启用，无法仅通过代码配置
+- "Access Wi-Fi Information" must be enabled in Developer Portal, cannot be configured via code only
 
 ### 3. 安装依赖
 ### 3. Install Dependencies

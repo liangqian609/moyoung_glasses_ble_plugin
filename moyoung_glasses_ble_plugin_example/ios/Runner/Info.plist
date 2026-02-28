@@ -10,6 +10,10 @@
 	<string>Moyoung Ble Plugin</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleGetInfoString</key>
+	<array>
+		<string>en</string>
+	</array>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -28,10 +32,32 @@
 	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NEHotspotConfiguration</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+        
+<!--		<key>NSAllowsArbitraryLoads</key>-->
+<!--		<true/>-->
+
+		<!-- 或者更精确的配置，只允许特定域名 -->
+		<!-- 
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>192.168.31.1</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+			<key>192.168.1.1</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+		-->
 	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Use the Bluetooth to connect to your Watch</string>
@@ -45,18 +71,18 @@
 	<string>Use the camera to scan the QR code on your watch screen.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>The selected contacts will be added to your Watch contacts.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Use the location to sync weather from your phone to your watch.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Use the Photo to change your watch face.</string>
 	<key>NSDocumentsFolderUsageDescription</key>
 	<string>This app needs access to documents folder to save downloaded files.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
 	<string>This app needs access to downloads folder to save media files.</string>
 	<key>NSHotspotConfigurationUsageDescription</key>
 	<string>This app needs to configure Wi-Fi hotspot to connect to your device.</string>
-	<key>NEHotspotConfiguration</key>
-	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>The App requires permission to access the wifi network</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>The App requires permission to access the wifi network</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Use the Photo to change your watch face.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
@@ -86,5 +112,9 @@
 	<false/>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>App-Prefs</string>
+	</array>
 </dict>
 </plist>

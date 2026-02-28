@@ -30,20 +30,23 @@ dependencies:
 #  bluetooth_enable_fork: ^0.1.6
   open_filex: ^4.5.0
 
-#  moyoung_glasses_ble_plugin: ^1.0.1
-  moyoung_glasses_ble_plugin:
-    path: ../
+  moyoung_glasses_ble_plugin: ^1.0.9
+  # moyoung_glasses_ble_plugin:
+  #   path: ../
     # When depending on this package from a real application you should use:
     #   moyoung_glasses_ble_plugin: ^x.y.z
     # See https://dart.dev/tools/pub/dependencies#version-constraints
     # The example app is bundled with the plugin so we use a path dependency on
     # the parent directory to use the current plugin's version.
+  
+  # 手表插件依赖 / Watch plugin dependency
+  moyoung_ble_plugin: ^1.2.22
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   flutter_foreground_task: ^5.0.0
-  # flutter_bluetooth_serial: ^0.4.0
+  flutter_bluetooth_serial: ^0.4.0
   flutter_image_compress: ^2.4.0
   image: ^3.0.0
   shared_preferences: ^2.2.2

@@ -425,6 +425,15 @@ class AppStrings {
   
   /// 媒体文件管理
   static String get mediaFileManagement => isZh ? AppZh.mediaFileManagement : AppEn.mediaFileManagement;
+
+  /// 双插件验证
+  static String get dualPluginVerification => isZh ? AppZh.dualPluginVerification : AppEn.dualPluginVerification;
+
+  /// 进入双插件验证页
+  static String get enterDualPluginPage => isZh ? AppZh.enterDualPluginPage : AppEn.enterDualPluginPage;
+
+  /// 同时验证眼镜和手表插件
+  static String get verifyGlassesWatchTogether => isZh ? AppZh.verifyGlassesWatchTogether : AppEn.verifyGlassesWatchTogether;
   
   /// 打开文件管理
   static String get openFileManager => isZh ? AppZh.openFileManager : AppEn.openFileManager;
@@ -434,9 +443,63 @@ class AppStrings {
   
   /// Wi-Fi状态
   static String get wifiStatus => isZh ? AppZh.wifiStatus : AppEn.wifiStatus;
+
+  /// 文件同步
+  static String get fileSync => isZh ? AppZh.fileSync : AppEn.fileSync;
+
+  /// Wi-Fi连接
+  static String get wifiConnection => isZh ? AppZh.wifiConnection : AppEn.wifiConnection;
+
+  /// 已进入
+  static String get entered => isZh ? AppZh.entered : AppEn.entered;
+
+  /// 未进入
+  static String get notEntered => isZh ? AppZh.notEntered : AppEn.notEntered;
+
+  /// 已连接（简短）
+  static String get connectedSimple => isZh ? AppZh.connectedSimple : AppEn.connectedSimple;
+
+  /// 未连接
+  static String get notConnected => isZh ? AppZh.notConnected : AppEn.notConnected;
   
   /// 文件统计
   static String get fileStatistics => isZh ? AppZh.fileStatistics : AppEn.fileStatistics;
+
+  /// 刷新文件
+  static String get refreshFiles => isZh ? AppZh.refreshFiles : AppEn.refreshFiles;
+
+  /// 下载文件
+  static String get downloadFiles => isZh ? AppZh.downloadFiles : AppEn.downloadFiles;
+
+  /// 图片
+  static String get image => isZh ? AppZh.image : AppEn.image;
+
+  /// 视频
+  static String get video => isZh ? AppZh.video : AppEn.video;
+
+  /// 音频
+  static String get audio => isZh ? AppZh.audio : AppEn.audio;
+
+  /// 下载中心
+  static String get downloadCenter => isZh ? AppZh.downloadCenter : AppEn.downloadCenter;
+
+  /// 删除全部
+  static String get deleteAll => isZh ? AppZh.deleteAll : AppEn.deleteAll;
+
+  /// 本地文件
+  static String get localFiles => isZh ? AppZh.localFiles : AppEn.localFiles;
+
+  /// 目录总大小
+  static String get totalDirectorySize => isZh ? AppZh.totalDirectorySize : AppEn.totalDirectorySize;
+
+  /// 目录中暂无已下载文件
+  static String get noDownloadedFilesInDirectory => isZh ? AppZh.noDownloadedFilesInDirectory : AppEn.noDownloadedFilesInDirectory;
+
+  /// 查看
+  static String get view => isZh ? AppZh.view : AppEn.view;
+
+  /// 下载进度：等待开始
+  static String get downloadProgressWaitingStart => isZh ? AppZh.downloadProgressWaitingStart : AppEn.downloadProgressWaitingStart;
   
   /// 总文件数
   static String get totalFiles => isZh ? AppZh.totalFiles : AppEn.totalFiles;
@@ -533,6 +596,79 @@ class AppStrings {
   
   /// 打开文件夹
   static String get openFolder => isZh ? AppZh.openFolder : AppEn.openFolder;
+
+  /// 当前没有可下载文件
+  static String get noDownloadableFiles => isZh ? AppZh.noDownloadableFiles : AppEn.noDownloadableFiles;
+
+  /// 请先连接设备 Wi-Fi，再下载文件
+  static String get connectWifiBeforeDownload => isZh ? AppZh.connectWifiBeforeDownload : AppEn.connectWifiBeforeDownload;
+
+  /// 无法获取下载目录
+  static String get unableToGetDownloadDir => isZh ? AppZh.unableToGetDownloadDir : AppEn.unableToGetDownloadDir;
+
+  /// 下载超时，请重试
+  static String get downloadTimeoutRetry => isZh ? AppZh.downloadTimeoutRetry : AppEn.downloadTimeoutRetry;
+
+  /// 下载完成：{count} 个文件
+  static String downloadCompletedCount(int count) => isZh ? AppZh.downloadCompletedCount(count) : AppEn.downloadCompletedCount(count);
+
+  /// 下载完成（含失败统计）
+  static String downloadCompletedWithFailure(int success, int fail, String message) =>
+      isZh ? AppZh.downloadCompletedWithFailure(success, fail, message) : AppEn.downloadCompletedWithFailure(success, fail, message);
+
+  /// 下载失败: {error}
+  static String downloadFailedWithError(String error) => isZh ? AppZh.downloadFailedWithError(error) : AppEn.downloadFailedWithError(error);
+
+  /// 系统弹窗加入 Wi-Fi 提示
+  static String get wifiJoinPrompt => isZh ? AppZh.wifiJoinPrompt : AppEn.wifiJoinPrompt;
+
+  /// 配置已应用提示
+  static String get wifiConfigAppliedPrompt => isZh ? AppZh.wifiConfigAppliedPrompt : AppEn.wifiConfigAppliedPrompt;
+
+  /// 设备 Wi-Fi 连接成功
+  static String get deviceWifiConnected => isZh ? AppZh.deviceWifiConnected : AppEn.deviceWifiConnected;
+
+  /// 设备 Wi-Fi 连接失败
+  static String deviceWifiConnectFailed(String message) => isZh ? AppZh.deviceWifiConnectFailed(message) : AppEn.deviceWifiConnectFailed(message);
+
+  /// 连接设备 Wi-Fi 失败
+  static String connectDeviceWifiFailed(String error) => isZh ? AppZh.connectDeviceWifiFailed(error) : AppEn.connectDeviceWifiFailed(error);
+
+  /// 设备有新文件
+  static String get deviceHasNewFiles => isZh ? AppZh.deviceHasNewFiles : AppEn.deviceHasNewFiles;
+
+  /// Wi-Fi 已开启，等待自动连接
+  static String get wifiEnabledWaitingAutoConnect => isZh ? AppZh.wifiEnabledWaitingAutoConnect : AppEn.wifiEnabledWaitingAutoConnect;
+
+  /// 加载本地文件失败
+  static String get loadLocalFilesFailed => isZh ? AppZh.loadLocalFilesFailed : AppEn.loadLocalFilesFailed;
+
+  /// 文件不存在，已刷新列表
+  static String get localFileNotExistRefreshed => isZh ? AppZh.localFileNotExistRefreshed : AppEn.localFileNotExistRefreshed;
+
+  /// 当前设备不支持直接打开该文件
+  static String get fileOpenNotSupported => isZh ? AppZh.fileOpenNotSupported : AppEn.fileOpenNotSupported;
+
+  /// 打开文件失败
+  static String openFileFailedWithError(String error) => isZh ? AppZh.openFileFailedWithError(error) : AppEn.openFileFailedWithError(error);
+
+  /// 删除失败：下载目录为空
+  static String get deleteFailedEmptyDownloadDir => isZh ? AppZh.deleteFailedEmptyDownloadDir : AppEn.deleteFailedEmptyDownloadDir;
+
+  /// 目录不存在，无需删除
+  static String get deleteSkippedDirNotExist => isZh ? AppZh.deleteSkippedDirNotExist : AppEn.deleteSkippedDirNotExist;
+
+  /// 已清空下载目录，共删除 N 项
+  static String clearedDownloadDirCount(int count) => isZh ? AppZh.clearedDownloadDirCount(count) : AppEn.clearedDownloadDirCount(count);
+
+  /// 删除全部失败
+  static String deleteAllFailedWithError(String error) => isZh ? AppZh.deleteAllFailedWithError(error) : AppEn.deleteAllFailedWithError(error);
+
+  /// 确认删除全部
+  static String get confirmDeleteAll => isZh ? AppZh.confirmDeleteAll : AppEn.confirmDeleteAll;
+
+  /// 确认删除全部内容
+  static String get confirmDeleteAllContent => isZh ? AppZh.confirmDeleteAllContent : AppEn.confirmDeleteAllContent;
   
   // ==================== 动态消息 / Dynamic Messages ====================
   
