@@ -191,7 +191,6 @@ class _GlassesScanPageState extends State<GlassesScanPage> {
     
     try {
       await _glassesBle.connect(ConnectBean(
-        autoConnect: false,
         address: device.address,
       ));
       debugPrint('Connection request sent');

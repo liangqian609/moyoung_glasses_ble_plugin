@@ -21,17 +21,6 @@ import 'pages/media_file_page.dart';
 
 //region 数据类定义
 
-// 翻译音频数据Bean（临时定义，实际应该在插件中定义）
-class TranslateAudioDataBean {
-  final int frameIndex;
-  final Uint8List data;
-  
-  TranslateAudioDataBean({
-    required this.frameIndex,
-    required this.data,
-  });
-}
-
 //endregion
 
 void main() {
@@ -48,6 +37,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final MoYoungGlassesBle _glassesPlugin = MoYoungGlassesBle();
   final _streamSubscriptions = <StreamSubscription<dynamic>>[];
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   
   //region 属性变量
   
@@ -67,16 +57,13 @@ class _MyAppState extends State<MyApp> {
   
   // 存储实际值，用于语言切换时重新格式化
   int _actualBatteryLevel = 0;
-  String _actualDeviceVersion = '';
   String _actualJlVersion = '';
   String _actualQzVersion = '';
-  String _actualRunningStatus = '';
   String _actualLanguageStatus = '';
   String _actualDeviceUUIDStatus = '';
   String _actualVoiceWakeupStatus = '';
   String _actualAudioTalkState = '';
   String _actualBluetoothState = '';
-  String _fileBaseUrl = AppStrings.waitingToReceive;
   bool isQuit = false;
   bool _isConnected = false;
   String _audioDataStatus = AppStrings.noAudioData;
@@ -97,11 +84,11 @@ class _MyAppState extends State<MyApp> {
   int _pcmTotalBytes = 0;
   String _audioRecordStatus = AppStrings.clickToGet;  // 录音状态
   String _languageStatus = AppStrings.clickToGet;     // 语言设置状态
+  String _getLanguageStatus = AppStrings.clickToGet;  // 获取语言状态
   String _deviceUUIDStatus = AppStrings.clickToGet;     // 设备UUID状态
   String _voiceWakeupStatus = AppStrings.clickToGet;   // 语音唤醒状态
   String _runningStatus = AppStrings.clickToGet;       // 运行状态
   String _otaStatus = AppStrings.waitingOtaStatus;        // OTA升级状态
-  String _actionResultStatus = AppStrings.waitingActionResult;  // Wifi操作结果状态
   String _sdkLogStatus = AppStrings.waitingSdkLog;      // SDK日志状态
   String _checkVersionResult = AppStrings.clickToGet;  // 检查版本结果状态
   String? _cachedMacAddress;               // 缓存的 MAC 地址
@@ -116,6 +103,7 @@ class _MyAppState extends State<MyApp> {
   int _selectedFrameRate = 0;             // 选择的录像帧率
   int _selectedMaxDuration = 60;          // 选择的录像最大时长
   int _selectedVoiceWakeupAction = 0;     // 选择的语音唤醒操作：0=开启(TypeOn)，1=关闭(TypeOff)
+  int _currentLanguageSelection = 1;     // 当前选择的语言：0=English，1=中文
 
   //endregion
   
@@ -138,13 +126,14 @@ class _MyAppState extends State<MyApp> {
       }
       
       _loadLocale();
-      _loadCachedMacAddress();
       _subscribeToStreams();
       _checkInitialBluetoothState();
       
-      // 延迟检查初始连接状态，确保事件流监听已启动
-      Future.delayed(Duration(milliseconds: 1000), () {
-        _checkInitialConnectionState();
+      // 先等缓存地址加载完成，再检查连接状态
+      _loadCachedMacAddress().then((_) {
+        Future.delayed(Duration(milliseconds: 500), () {
+          _checkInitialConnectionState();
+        });
       });
       
       debugPrint('=== MyApp 初始化完成 ===');
@@ -180,13 +169,12 @@ class _MyAppState extends State<MyApp> {
           ? AppStrings.qzVersion(_actualQzVersion)
           : AppStrings.unknownStatus;
       
-      // 根据实际状态重新设置显示文本
-      _runningStatus = _actualRunningStatus.isNotEmpty 
-          ? _actualRunningStatus 
-          : AppStrings.clickToGet;
-      
       _languageStatus = _actualLanguageStatus.isNotEmpty 
           ? _actualLanguageStatus 
+          : AppStrings.clickToGet;
+      
+      _getLanguageStatus = _getLanguageStatus.isNotEmpty && _getLanguageStatus != AppStrings.clickToGet
+          ? _getLanguageStatus
           : AppStrings.clickToGet;
       
       _deviceUUIDStatus = _actualDeviceUUIDStatus.isNotEmpty 
@@ -207,7 +195,6 @@ class _MyAppState extends State<MyApp> {
       
       // 这些状态文本根据当前语言重新设置
       _githashVersion = AppStrings.unknownStatus;
-      _fileBaseUrl = AppStrings.waitingToReceive;
       _audioDataStatus = AppStrings.noAudioData;
       _aiImageDataStatus = AppStrings.noAiImageData;
       _aiConversationStatus = AppStrings.aiStatusNotStarted;
@@ -215,7 +202,6 @@ class _MyAppState extends State<MyApp> {
       _pcmAudioStatus = AppStrings.noPcmAudio;
       _audioRecordStatus = AppStrings.clickToGet;
       _otaStatus = AppStrings.waitingOtaStatus;
-      _actionResultStatus = AppStrings.waitingActionResult;
       _sdkLogStatus = AppStrings.waitingSdkLog;
       
       // 重置图片数据相关变量
@@ -247,7 +233,6 @@ class _MyAppState extends State<MyApp> {
       _jlVersion = AppStrings.unknownStatus;
       _qzVersion = AppStrings.unknownStatus;
       _githashVersion = AppStrings.unknownStatus;
-      _fileBaseUrl = AppStrings.waitingToReceive;
       _audioDataStatus = AppStrings.noAudioData;
       _aiImageDataStatus = AppStrings.noAiImageData;
       _aiConversationStatus = AppStrings.aiStatusNotStarted;
@@ -255,11 +240,12 @@ class _MyAppState extends State<MyApp> {
       _pcmAudioStatus = AppStrings.noPcmAudio;
       _audioRecordStatus = AppStrings.clickToGet;
       _languageStatus = AppStrings.clickToGet;
+      _actualLanguageStatus = '';
+      _getLanguageStatus = AppStrings.clickToGet;
       _deviceUUIDStatus = AppStrings.clickToGet;
       _voiceWakeupStatus = AppStrings.clickToGet;
       _runningStatus = AppStrings.clickToGet;
       _otaStatus = AppStrings.waitingOtaStatus;
-      _actionResultStatus = AppStrings.waitingActionResult;
       _sdkLogStatus = AppStrings.waitingSdkLog;
       _audioTalkState = AppStrings.notSet;
       _bluetoothState = AppStrings.unknownStatus;
@@ -310,6 +296,11 @@ class _MyAppState extends State<MyApp> {
             'isConnected': true,
           });
 
+          // 连接成功后确保关闭 Wi-Fi 模式，防止设备停留在 Wi-Fi 模式导致无法操作
+          _glassesPlugin.disableWifi().catchError((e) {
+            debugPrint('连接成功后关闭 Wi-Fi 失败（可能本来就没开）: $e');
+          });
+
           // 连接成功后更新基本信息
           // 延迟一下，避免与初始连接检查冲突
           Timer(const Duration(milliseconds: 100), () async {
@@ -328,15 +319,6 @@ class _MyAppState extends State<MyApp> {
             _cachedDeviceName = null;
           });
         }
-      }),
-    );
-    
-    // 监听Wi-Fi状态文件BaseUrl
-    _streamSubscriptions.add(
-      _glassesPlugin.fileBaseUrlEveStm.listen((String baseUrl) {
-        setState(() {
-          _fileBaseUrl = baseUrl;
-        });
       }),
     );
     
@@ -413,16 +395,6 @@ class _MyAppState extends State<MyApp> {
             _voiceWakeupStatus = AppStrings.notSupportedOrErrorStatus;
           });
           // 语音唤醒错误不显示Toast，避免重复提示
-          shouldShowToast = false;
-        }
-        
-        // 如果是运行状态相关的错误，更新状态显示
-        if (_runningStatus == AppStrings.gettingStatusWithDots) {
-          setState(() {
-            _actualRunningStatus = AppStrings.notSupportedOrErrorStatus;
-            _runningStatus = AppStrings.notSupportedOrErrorStatus;
-          });
-          // 运行状态错误不显示Toast，避免重复提示
           shouldShowToast = false;
         }
         
@@ -581,30 +553,6 @@ class _MyAppState extends State<MyApp> {
       }),
     );
     
-    // 监听Wifi操作结果
-    _streamSubscriptions.add(
-      _glassesPlugin.actionResultEveStm.listen((Map<String, dynamic> data) {
-        debugPrint('Received action result: $data');
-        int code = data['code'] ?? -1;
-        String msg = data['msg'] ?? '';
-        
-        String statusText = '';
-        // 根据官方Demo，只确认 code=0 表示成功
-        if (code == 0) {
-          statusText = msg.isEmpty ? 'Connected' : 'Success: $msg';
-        } else {
-          // 其他状态码显示原始信息
-          statusText = msg.isEmpty ? 'Operation result(code: $code)' : 'Result: $msg (code: $code)';
-        }
-        
-        setState(() {
-          _actionResultStatus = statusText;
-        });
-        
-        _showToast(statusText);
-      }),
-    );
-    
     // 监听SDK日志
     debugPrint('开始监听 SDK 日志事件流...');
     _streamSubscriptions.add(
@@ -637,11 +585,15 @@ class _MyAppState extends State<MyApp> {
     _streamSubscriptions.add(
       _glassesPlugin.runningStatusEveStm.listen((Map<String, dynamic> status) {
         debugPrint('Received running status event: $status');
-        String actualStatus = status['status'] ?? 'Unknown status';
-        setState(() {
-          _actualRunningStatus = actualStatus;
-          _runningStatus = actualStatus;
-        });
+        // 将整个 status 对象转换为 JSON 字符串显示
+        try {
+          String statusJson = _mapToString(status);
+          setState(() {
+            _runningStatus = statusJson;
+          });
+        } catch (e) {
+          debugPrint('Failed to convert status to string: $e');
+        }
       }),
     );
     
@@ -725,6 +677,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       locale: _locale,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -798,12 +751,12 @@ class _MyAppState extends State<MyApp> {
                     const SizedBox(height: 20),
 
                     // AI 功能
-                    _buildAISection(),
-                    const SizedBox(height: 20),
+                    // _buildAISection(),
+                    // const SizedBox(height: 20),
 
                     // Wi-Fi 功能（文件同步）
-                    _buildWifiSection(),
-                    const SizedBox(height: 20),
+                    // _buildWifiSection(),
+                    // const SizedBox(height: 20),
 
                     // 录音功能
                     _buildRecordSection(),
@@ -822,12 +775,8 @@ class _MyAppState extends State<MyApp> {
                     const SizedBox(height: 20),
 
                     // OTA 升级功能
-                    _buildOTASection(),
-                    const SizedBox(height: 20),
-
-                    // 文件管理功能
-                    _buildFileManagementSection(),
-                    const SizedBox(height: 20),
+                    // _buildOTASection(),
+                    // const SizedBox(height: 20),
 
                     // SDK 日志显示
                     _buildSDKLogSection(),
@@ -850,10 +799,81 @@ class _MyAppState extends State<MyApp> {
       ),
     );
   }
-  
-  //endregion
 
-  //region UI构建方法 - 各功能模块
+  Widget _buildStatusCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue[600]),
+                const SizedBox(width: 8),
+                Text(
+                  AppStrings.deviceStatus,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildStatusRow(AppStrings.connectionState, _connectionStatus,
+                _isConnected ? Colors.green : Colors.red),
+            _buildStatusRow(AppStrings.batteryLevel, _batteryLevel, Colors.orange),
+            _buildStatusRow(AppStrings.firmwareVersion, _deviceVersion, Colors.blue),
+            // 显示设备名称和 MAC 地址
+            if (_cachedDeviceName != null && _cachedMacAddress != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.devices, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          AppStrings.connectedDevice,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _cachedDeviceName!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      _cachedMacAddress!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildBasicFunctionSection() {
     return _buildSectionCard(
@@ -870,14 +890,14 @@ class _MyAppState extends State<MyApp> {
           builder: (context) => _buildApiButton(
             AppStrings.scanDevice,
             Icons.bluetooth_searching,
-            () => _navigateToScanPage(context),
+                () => _navigateToScanPage(context),
             subtitle: AppStrings.scanAndConnect,
           ),
         ),
         _buildApiButton(
           AppStrings.bluetoothStatus,
           Icons.bluetooth,
-          () {},
+              () {},
           subtitle: _bluetoothState,
           enabled: false,
         ),
@@ -911,12 +931,29 @@ class _MyAppState extends State<MyApp> {
           _getRunningStatus,
           subtitle: _runningStatus,
         ),
-        _buildApiButton(
-          AppStrings.sdkLog,
-          Icons.description,
-          () {},
-          subtitle: _sdkLogStatus,
-          enabled: false,
+        // 语言设置
+        Row(
+          children: [
+            Expanded(
+              child: _buildApiButton(
+                AppStrings.setLanguage,
+                Icons.language,
+                    () => _showLanguageDialog(),
+                subtitle: _languageStatus,
+                enabled: _isConnected,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildApiButton(
+                AppStrings.getLanguage,
+                Icons.translate,
+                _getLanguage,
+                subtitle: _getLanguageStatus,
+                enabled: _isConnected,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -996,7 +1033,7 @@ class _MyAppState extends State<MyApp> {
         _buildApiButton(
           AppStrings.takePhoto,
           Icons.camera_alt,
-          () => _takePhoto(photoMode: _selectedPhotoMode),
+              () => _takePhoto(photoMode: _selectedPhotoMode),
           subtitle: AppStrings.controlPhoto,
           enabled: _isConnected,
         ),
@@ -1359,6 +1396,24 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  Widget _buildMediaFileSection() {
+    return _buildSectionCard(
+      title: AppStrings.mediaFileManagement,
+      icon: Icons.folder,
+      children: [
+        Builder(
+          builder: (context) => _buildApiButton(
+            AppStrings.openFileManager,
+            Icons.folder_open,
+                () => _navigateToMediaFilePage(context),
+            subtitle: AppStrings.manageDownloadFiles,
+            enabled: _isConnected,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAISection() {
     return _buildSectionCard(
       title: AppStrings.aiFunctions,
@@ -1447,44 +1502,6 @@ class _MyAppState extends State<MyApp> {
       ],
     );
   }
-
-  //endregion
-
-  //region 媒体文件管理
-
-  Widget _buildMediaFileSection() {
-    return _buildSectionCard(
-      title: AppStrings.mediaFileManagement,
-      icon: Icons.folder,
-      children: [
-        Builder(
-          builder: (context) => _buildApiButton(
-            AppStrings.openFileManager,
-            Icons.folder_open,
-            () => _navigateToMediaFilePage(context),
-            subtitle: AppStrings.manageDownloadFiles,
-            enabled: _isConnected,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 导航到媒体文件管理页面
-  void _navigateToMediaFilePage(BuildContext context) {
-    if (!mounted) return;
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MediaFilePage(
-          glassesPlugin: _glassesPlugin,
-        ),
-      ),
-    );
-  }
-
-  //endregion
 
   Widget _buildWifiSection() {
     return _buildSectionCard(
@@ -1602,57 +1619,6 @@ class _MyAppState extends State<MyApp> {
                   // 视频配置功能暂时禁用
                   onPressed: () => _showToast("视频配置功能暂时禁用"),
                   child: Text(AppStrings.applySettings),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 操作结果显示
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.wifi_outlined, size: 20, color: Colors.blue[700]),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          AppStrings.wifiOperationResult,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          AppStrings.codeZeroSuccess,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _actionResultStatus,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue[700],
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -1901,73 +1867,6 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Widget _buildFileManagementSection() {
-    return _buildSectionCard(
-      title: AppStrings.fileManagementFunction,
-      icon: Icons.folder,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.link, color: Colors.blue[600], size: 20),
-              const SizedBox(width: 8),
-              Text(
-                AppStrings.fileBaseUrl,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue[600],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  _fileBaseUrl,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.blue[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
-        _buildApiButton(
-          AppStrings.queryFileCount,
-          Icons.numbers,
-          _queryFileCount,
-          subtitle: AppStrings.queryFileCount,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.queryFileSyncMethod,
-          Icons.sync_alt,
-          _queryFileSyncType,
-          subtitle: AppStrings.queryFileSyncMethod,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.deleteMediaFile,
-          Icons.delete,
-          _deleteMediaFile,
-          subtitle: AppStrings.deleteMediaFile,
-          enabled: _isConnected,
-        ),
-      ],
-    );
-  }
-
   Widget _buildSDKLogSection() {
     return _buildSectionCard(
       title: AppStrings.sdkLog,
@@ -2115,6 +2014,36 @@ class _MyAppState extends State<MyApp> {
           subtitle: _runningStatus,
           enabled: _isConnected,
         ),
+        _buildApiButton(
+          '重启设备',
+          Icons.refresh,
+          _restartDevice,
+          subtitle: '重启',
+          enabled: _isConnected,
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildApiButton(
+                '关机',
+                Icons.power_off,
+                _shutdownDevice,
+                subtitle: '关机',
+                enabled: _isConnected,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildApiButton(
+                '重置设备',
+                Icons.restore,
+                _resetDevice,
+                subtitle: '重置',
+                enabled: _isConnected,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -2167,85 +2096,38 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  //endregion
+
+
+  //region 媒体文件管理
+
+
+
+  /// 导航到媒体文件管理页面
+  void _navigateToMediaFilePage(BuildContext context) {
+    if (!mounted) return;
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MediaFilePage(
+          glassesPlugin: _glassesPlugin,
+        ),
+      ),
+    );
+  }
+
+  //endregion
+
+
+
+
 
   //region UI构建辅助方法
 
   // ==================== UI 构建方法 ====================
   
-  Widget _buildStatusCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue[600]),
-                const SizedBox(width: 8),
-                Text(
-                  AppStrings.deviceStatus,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildStatusRow(AppStrings.connectionState, _connectionStatus, 
-                _isConnected ? Colors.green : Colors.red),
-            _buildStatusRow(AppStrings.batteryLevel, _batteryLevel, Colors.orange),
-            _buildStatusRow(AppStrings.firmwareVersion, _deviceVersion, Colors.blue),
-            // 显示设备名称和 MAC 地址
-            if (_cachedDeviceName != null && _cachedMacAddress != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.devices, size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          AppStrings.connectedDevice,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _cachedDeviceName!,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      _cachedMacAddress!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+
   
   Widget _buildStatusRow(String label, String value, Color color) {
     return Padding(
@@ -2459,10 +2341,6 @@ class _MyAppState extends State<MyApp> {
             });
             debugPrint('Updated UI state to connected');
             _hasCheckedInitialConnection = true;
-            
-            // 触发连接成功后的操作（静默，不显示Toast）
-            await _loadCachedMacAddress();
-            // 重新查询电量用于刷新UI显示（上面的查询仅用于判断连接状态）
             _queryBattery();
             _queryDeviceVersion();
           }
@@ -2599,6 +2477,7 @@ class _MyAppState extends State<MyApp> {
   
   void _restartDevice() async {
     try {
+      _showToast('正在重启设备...');
       bool success = await _glassesPlugin.restart();
       _showToast(success ? AppStrings.deviceRestartSuccess : AppStrings.deviceRestartFailed);
     } catch (e) {
@@ -2680,17 +2559,37 @@ class _MyAppState extends State<MyApp> {
   
   void _resetDevice() async {
     try {
+      _showToast('正在重置设备...');
       bool success = await _glassesPlugin.reset();
-      _showToast(success ? AppStrings.deviceResetSuccess : AppStrings.deviceResetFailed);
+      if (success) {
+        _showToast(AppStrings.deviceResetSuccess);
+        // 重置后断开连接
+        setState(() {
+          _isConnected = false;
+          _connectionStatus = AppStrings.disconnected;
+        });
+      } else {
+        _showToast(AppStrings.deviceResetFailed);
+      }
     } catch (e) {
-      _showToast(AppStrings.alarmSetFailed + ": $e");
+      _showToast(AppStrings.deviceResetFailed + ": $e");
     }
   }
   
   void _shutdownDevice() async {
     try {
+      _showToast('正在关闭设备...');
       bool success = await _glassesPlugin.shutdown();
-      _showToast(success ? AppStrings.deviceShutdownSuccess : AppStrings.deviceShutdownFailed);
+      if (success) {
+        _showToast(AppStrings.deviceShutdownSuccess);
+        // 关机后断开连接
+        setState(() {
+          _isConnected = false;
+          _connectionStatus = AppStrings.disconnected;
+        });
+      } else {
+        _showToast(AppStrings.deviceShutdownFailed);
+      }
     } catch (e) {
       _showToast(AppStrings.deviceShutdownFailed2 + ": $e");
     }
@@ -2718,7 +2617,8 @@ class _MyAppState extends State<MyApp> {
     showDialog(
       context: dialogContext,
       builder: (BuildContext context) {
-        bool enableWearCheck = false;
+        // 根据当前状态设置初始值
+        bool enableWearCheck = _wearCheckState == AppStrings.enabled;
         return AlertDialog(
           title: Text(AppStrings.setWearCheckState),
           content: Column(
@@ -2744,23 +2644,18 @@ class _MyAppState extends State<MyApp> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(AppStrings.cancel),
+              child: Text('取消'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
                 try {
-                  debugPrint('Setting wear check state to: $enableWearCheck');
-                  bool success = await _glassesPlugin.setWearCheckState(enable: enableWearCheck);
-                  if (success) {
-                    _showToast(AppStrings.setWearCheckSuccess);
-                    // 重新查询状态
-                    _queryWearCheckState();
-                  } else {
-                    _showToast(AppStrings.setWearCheckFailed);
-                  }
+                  await _glassesPlugin.setWearCheckState(enable: enableWearCheck);
+                  setState(() {
+                    _wearCheckState = enableWearCheck ? AppStrings.enabled : AppStrings.disabled;
+                  });
+                  _showToast(AppStrings.wearCheckStateToast(enableWearCheck ? AppStrings.enabled : AppStrings.disabled));
                 } catch (e) {
-                  debugPrint('Set wear check failed: $e');
                   _showToast(AppStrings.setWearCheckFailed + ": $e");
                 }
               },
@@ -2888,8 +2783,8 @@ class _MyAppState extends State<MyApp> {
   /// 调用 SDK 的 getFileCount 方法
   void _queryFileCount() async {
     try {
-      int count = await _glassesPlugin.getFileCount();
-      _showToast(AppStrings.deviceFileCount(count));
+      await _glassesPlugin.getFileCount();
+      _showToast('已触发文件数量查询，请从 event_media_file_count 事件获取最新数量');
     } catch (e) {
       _showToast(AppStrings.queryFileCountFailed + ": $e");
     }
@@ -3149,31 +3044,25 @@ class _MyAppState extends State<MyApp> {
   void _getLanguage() async {
     // 设置初始状态为获取中
     setState(() {
-      _actualLanguageStatus = AppStrings.gettingStatusWithDots;
-      _languageStatus = AppStrings.gettingStatusWithDots;
+      _getLanguageStatus = AppStrings.gettingStatusWithDots;
     });
     
     try {
       // 使用 timeout 设置10秒超时
-      // String language = await _glassesPlugin.getLanguage() // 已移除
-      //     .timeout(const Duration(seconds: 10), onTimeout: () {
-      //   throw TimeoutException(AppStrings.sdkTimeoutMessage, const Duration(seconds: 10));
-      // });
+      String language = await _glassesPlugin.getLanguage()
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        throw TimeoutException(AppStrings.sdkTimeoutMessage, const Duration(seconds: 10));
+      });
       
-      _showToast("获取语言功能已移除");
-      return;
-      
-      /*
       setState(() {
         _actualLanguageStatus = language;
         _languageStatus = language;
+        _getLanguageStatus = language;
       });
       _showToast(AppStrings.currentLanguage(language));
-      */
     } on TimeoutException catch (e) {
       setState(() {
-        _actualLanguageStatus = AppStrings.sdkNotReturned;
-        _languageStatus = AppStrings.sdkNotReturned;
+        _getLanguageStatus = AppStrings.sdkNotReturned;
       });
       _showToast(AppStrings.getLanguageTimeout + ": $e");
     } catch (e) {
@@ -3181,17 +3070,112 @@ class _MyAppState extends State<MyApp> {
       String errorMsg = e.toString();
       if (errorMsg.contains('device not support')) {
         setState(() {
-          _actualLanguageStatus = AppStrings.deviceNotSupportedFeature;
-          _languageStatus = AppStrings.deviceNotSupportedFeature;
+          _getLanguageStatus = AppStrings.deviceNotSupportedFeature;
         });
         _showToast(AppStrings.getFailed + ": $e");
       } else {
         setState(() {
-          _actualLanguageStatus = AppStrings.getFailed;
-          _languageStatus = AppStrings.getFailed;
+          _getLanguageStatus = AppStrings.getFailed;
         });
         _showToast(AppStrings.getLanguageFailed + ": $e");
       }
+    }
+  }
+  
+  /// 显示语言选择对话框
+  void _showLanguageDialog() {
+    // 根据当前语言状态设置初始选择
+    int initialSelection = 1;
+    if (_actualLanguageStatus == '中文') {
+      initialSelection = 1;
+    } else if (_actualLanguageStatus == 'English') {
+      initialSelection = 0;
+    }
+    
+    // 使用 navigatorKey 来获取正确的 context
+    final context = _navigatorKey.currentContext;
+    if (context != null) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(AppStrings.setLanguage),
+            content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      title: Text('中文'),
+                      leading: Radio<int>(
+                        value: 1,
+                        groupValue: initialSelection,
+                        onChanged: (int? value) {
+                          setState(() {
+                            initialSelection = value!;
+                          });
+                        },
+                      ),
+                    ),
+                    ListTile(
+                      title: Text('English'),
+                      leading: Radio<int>(
+                        value: 0,
+                        groupValue: initialSelection,
+                        onChanged: (int? value) {
+                          setState(() {
+                            initialSelection = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _setLanguage(initialSelection);
+                },
+                child: Text('确定'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+  
+  /// 设置语言
+  /// 调用 SDK 的 sendLanguage 方法
+  void _setLanguage(int language) async {
+    try {
+      setState(() {
+        _actualLanguageStatus = AppStrings.gettingStatusWithDots;
+        _languageStatus = AppStrings.gettingStatusWithDots;
+      });
+      
+      await _glassesPlugin.sendLanguage(language);
+      
+      setState(() {
+        _actualLanguageStatus = language == 1 ? '中文' : 'English';
+        _languageStatus = language == 1 ? '中文' : 'English';
+        _getLanguageStatus = language == 1 ? '中文' : 'English';
+      });
+      
+      _showToast(AppStrings.setSuccess + ': ${language == 1 ? '中文' : 'English'}');
+    } catch (e) {
+      setState(() {
+        _actualLanguageStatus = AppStrings.setFailed;
+        _languageStatus = AppStrings.setFailed;
+      });
+      _showToast(AppStrings.setLanguageFailed + ": $e");
     }
   }
   
@@ -3373,35 +3357,30 @@ class _MyAppState extends State<MyApp> {
   }
   
   /// 获取运行状态
-  /// 调用 SDK 的 readRunningStatus 方法
+  /// 调用 SDK 的 readRunningStatus 方法，状态通过事件流返回
   void _getRunningStatus() async {
-    // 设置初始状态为获取中
-    setState(() {
-      _actualRunningStatus = AppStrings.gettingStatusWithDots;
-      _runningStatus = AppStrings.gettingStatusWithDots;
-    });
-    
     try {
-      // 使用 timeout 设置10秒超时
-      String status = await _glassesPlugin.getRunningStatus()
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        throw TimeoutException(AppStrings.sdkTimeoutMessage, const Duration(seconds: 10));
-      });
-      
-      setState(() {
-        _actualRunningStatus = status;
-        _runningStatus = status;
-      });
-      
-      _showToast(AppStrings.runningStatus(status));
+      // 只调用 SDK，状态通过 runningStatusEveStm 事件流返回
+      await _glassesPlugin.getRunningStatus();
+      debugPrint('已请求运行状态，等待事件流返回');
     } catch (e) {
-      debugPrint('Running status exception: $e');
-      setState(() {
-        _actualRunningStatus = AppStrings.deviceNotSupportedFeature2;
-        _runningStatus = AppStrings.deviceNotSupportedFeature2;
-      });
+      debugPrint('请求运行状态失败: $e');
       _showToast(AppStrings.getFailed + ": $e");
     }
+  }
+  
+  /// 将 Map 转换为格式化的字符串
+  String _mapToString(Map<String, dynamic> map) {
+    final buffer = StringBuffer();
+    buffer.write('{');
+    bool first = true;
+    map.forEach((key, value) {
+      if (!first) buffer.write(', ');
+      first = false;
+      buffer.write('$key: $value');
+    });
+    buffer.write('}');
+    return buffer.toString();
   }
   
   //endregion

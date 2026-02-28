@@ -28,6 +28,7 @@ dependencies:
     # HTTP network request library
   dio: ^4.0.6
 #  bluetooth_enable_fork: ^0.1.6
+  open_filex: ^4.5.0
 
 #  moyoung_glasses_ble_plugin: ^1.0.1
   moyoung_glasses_ble_plugin:

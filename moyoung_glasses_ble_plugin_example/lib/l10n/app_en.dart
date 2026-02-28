@@ -492,6 +492,11 @@ class AppEn {
   static const String alreadyLatest = 'Already latest version';
   static const String getLanguageTimeout = 'Get language settings timeout';
   static const String getLanguageFailed = 'Get language settings failed';
+  static const String setLanguage = 'Set Language';
+  static const String getLanguage = 'Get Language';
+  static const String setLanguageFailed = 'Set language failed';
+  static const String setSuccess = 'Set successfully';
+  static const String setFailed = 'Set failed';
   static const String voiceWakeupMayNotSupport = 'Voice wakeup may not be supported';
   static const String setVoiceWakeupFailed = 'Set voice wakeup failed';
   static String runningStatus(String status) => 'Running status: $status';

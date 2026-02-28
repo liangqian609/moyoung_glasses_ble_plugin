@@ -1435,6 +1435,21 @@ class AppStrings {
   /// 获取语言设置失败
   static String get getLanguageFailed => isZh ? AppZh.getLanguageFailed : AppEn.getLanguageFailed;
   
+  /// 设置语言
+  static String get setLanguage => isZh ? AppZh.setLanguage : AppEn.setLanguage;
+  
+  /// 获取语言设置
+  static String get getLanguage => isZh ? AppZh.getLanguage : AppEn.getLanguage;
+  
+  /// 设置语言失败
+  static String get setLanguageFailed => isZh ? AppZh.setLanguageFailed : AppEn.setLanguageFailed;
+  
+  /// 设置成功
+  static String get setSuccess => isZh ? AppZh.setSuccess : AppEn.setSuccess;
+  
+  /// 设置失败
+  static String get setFailed => isZh ? AppZh.setFailed : AppEn.setFailed;
+  
   /// 语音唤醒可能不支持
   static String get voiceWakeupMayNotSupport => isZh ? AppZh.voiceWakeupMayNotSupport : AppEn.voiceWakeupMayNotSupport;
   

@@ -493,6 +493,11 @@ class AppZh {
   static const String alreadyLatest = '已是最新版本';
   static const String getLanguageTimeout = '获取语言设置超时';
   static const String getLanguageFailed = '获取语言设置失败';
+  static const String setLanguage = '设置语言';
+  static const String getLanguage = '获取语言';
+  static const String setLanguageFailed = '设置语言失败';
+  static const String setSuccess = '设置成功';
+  static const String setFailed = '设置失败';
   static const String voiceWakeupMayNotSupport = '语音唤醒可能不支持';
   static const String setVoiceWakeupFailed = '设置语音唤醒失败';
   static String runningStatus(String status) => '运行状态: $status';
