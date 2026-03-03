@@ -45,7 +45,7 @@ PODS:
   - moyoung_ble_plugin (1.0.79):
     - Flutter
     - HandyJSON
-  - moyoung_glasses_ble_plugin (1.0.8):
+  - moyoung_glasses_ble_plugin (1.0.9):
     - AFNetworking
     - Flutter
     - SwiftProtobuf (= 1.29.0)
@@ -125,8 +125,8 @@ SPEC CHECKSUMS:
   HandyJSON: 9e4e236f5d2dbefad5155a77417bbea438201c03
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   Mantle: c5aa8794a29a022dfbbfc9799af95f477a69b62d
-  moyoung_ble_plugin: a90171e2f3def63004487a6c8f617fc4b7be44bb
-  moyoung_glasses_ble_plugin: ee2fdeb4c1aedc1e62799082184e6135072aefd2
+  moyoung_ble_plugin: ab6378c21dc9335e73d247b4c9a91e90094926a4
+  moyoung_glasses_ble_plugin: 51bc81964dfa8ea419741cf4a47d3edc72ac819d
   open_filex: 6e26e659846ec990262224a12ef1c528bb4edbe4
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2

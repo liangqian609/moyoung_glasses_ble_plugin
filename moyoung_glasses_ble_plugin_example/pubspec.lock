@@ -297,10 +297,10 @@ packages:
     dependency: "direct main"
     description:
       name: moyoung_ble_plugin
-      sha256: d437bd28cfb8ab55cb108f840a3af9f7ebd10f2e560376c2c4540d606f689c3b
+      sha256: d9df03b88ec42dce1ac9fe04f93a7af72f35ed19314d723ce33df956b041a9e6
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "1.2.22"
+    version: "1.2.44-norealtek-itouch-2026.1.16"
   moyoung_glasses_ble_plugin:
     dependency: "direct main"
     description:
