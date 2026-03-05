@@ -1,5 +1,5 @@
 # MoYoung Glasses Flutter SDK API 列表 / API List
-# Version: 1.1.0
+# Version: 1.1.2
 
 ## 概述 / Overview
 
