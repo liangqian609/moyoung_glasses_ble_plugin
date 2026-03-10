@@ -127,6 +127,7 @@ class _MyAppState extends State<MyApp> {
       }
       
       _loadLocale();
+      _initializeGlassesPlugin();
       _subscribeToStreams();
       _checkInitialBluetoothState();
       
@@ -142,6 +143,17 @@ class _MyAppState extends State<MyApp> {
       debugPrint('=== MyApp 初始化失败 ===');
       debugPrint('错误: $e');
       debugPrint('堆栈: $stackTrace');
+    }
+  }
+
+  /// 显式初始化眼镜插件（Android 端会在这里开始 BLE 注册和自动重连）
+  Future<void> _initializeGlassesPlugin() async {
+    try {
+      final initialized = await _glassesPlugin.initialize();
+      debugPrint('MoYoungGlassesBle initialize result: $initialized');
+    } catch (e, stackTrace) {
+      debugPrint('MoYoungGlassesBle initialize failed: $e');
+      debugPrint('MoYoungGlassesBle initialize stack: $stackTrace');
     }
   }
   

@@ -30,7 +30,7 @@ dependencies:
 #  bluetooth_enable_fork: ^0.1.6
   open_filex: ^4.5.0
 
-  moyoung_glasses_ble_plugin: ^1.1.0
+  moyoung_glasses_ble_plugin: ^1.1.3
   # moyoung_glasses_ble_plugin:
   #   path: ../
     # When depending on this package from a real application you should use:

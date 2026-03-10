@@ -1,5 +1,5 @@
 # MoYoung Glasses Flutter SDK API 列表 / API List
-# Version: 1.1.2
+# Version: 1.1.3
 
 ## 概述 / Overview
 
@@ -18,6 +18,7 @@ MoYoung Glasses Flutter SDK is a unified Flutter plugin that wraps the native An
 
 | 方法 / Method | 类型 / Type | 说明 / Description | 参数 / Parameters | 返回值 / Return |
 |-----|------|------|------|--------|
+| `initialize` | Future<bool> | 显式初始化 BLE 资源（Android 端建议在真正使用插件前调用）/ Explicitly initialize BLE resources (recommended on Android before actual plugin usage) | 无 / None | bool: 是否初始化成功 / Whether initialization succeeded |
 | `checkBluetoothEnable` | Future<bool> | 检查蓝牙是否开启 / Check if Bluetooth is enabled | 无 / None | bool: 蓝牙是否开启 / Whether Bluetooth is enabled |
 
 ### 2. 设备扫描 / Device Scan
