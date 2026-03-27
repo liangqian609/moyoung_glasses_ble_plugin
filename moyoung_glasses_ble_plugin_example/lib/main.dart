@@ -2785,25 +2785,25 @@ class _MyAppState extends State<MyApp> {
     }
   }
   
-  /// 删除文件
+  /// 删除文件（已废弃，下载完成后自动删除）
   /// 调用 SDK 的 deleteFile 方法
-  void _deleteMediaFile() async {
-    try {
-      // 示例：删除一个图片文件
-      // 实际使用时应该从文件列表中选择
-      bool success = await _glassesPlugin.deleteFile(
-        fileType: 1, // 0-删除所有文件, 1-按名称删除, 2-按类型删除
-        fileName: "example.jpg",
-      );
-      if (success) {
-        _showToast(AppStrings.deleteFileSuccess);
-      } else {
-        _showToast(AppStrings.deleteFileFailed);
-      }
-    } catch (e) {
-      _showToast(AppStrings.deleteMediaFileFailed + ": $e");
-    }
-  }
+  // void _deleteMediaFile() async {
+  //   try {
+  //     // 示例：删除一个图片文件
+  //     // 实际使用时应该从文件列表中选择
+  //     bool success = await _glassesPlugin.deleteFile(
+  //       fileType: 1, // 0-删除所有文件, 1-按名称删除, 2-按类型删除
+  //       fileName: "example.jpg",
+  //     );
+  //     if (success) {
+  //       _showToast(AppStrings.deleteFileSuccess);
+  //     } else {
+  //       _showToast(AppStrings.deleteFileFailed);
+  //     }
+  //   } catch (e) {
+  //     _showToast(AppStrings.deleteMediaFileFailed + ": $e");
+  //   }
+  // }
   
   /// 进入文件同步模式（开启 Wi-Fi）
   /// 调用 SDK 的 setFileSyncModeEnter 方法

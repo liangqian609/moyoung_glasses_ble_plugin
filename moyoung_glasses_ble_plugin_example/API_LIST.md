@@ -1,5 +1,5 @@
 # MoYoung Glasses Flutter SDK API 列表 / API List
-# Version: 1.1.3
+# Version: 1.1.8
 
 ## 概述 / Overview
 
@@ -111,7 +111,6 @@ MoYoung Glasses Flutter SDK is a unified Flutter plugin that wraps the native An
 |-----|------|------|------|--------|
 | `getFileCount` | Future<void> | 查询文件数量 / Query file count | 无 / None | 无 / None |
 | `getFileSyncType` | Future<int> | 查询文件同步方式 / Query file sync type | 无 / None | int: 同步方式 / Sync type |
-| `deleteFile` | Future<bool> | 删除文件 / Delete file | int fileType: 删除类型 / Delete type<br>String fileName: 文件名 / File name | bool: 是否成功 / Whether successful |
 | `downloadMediaFilesToDir` | Future<Map<String, dynamic>> | 下载媒体文件到指定目录 / Download media files to specified directory | String targetDir: 目标目录 / Target directory | Map: 下载结果 / Download result |
 | `setFileSyncModeEnter` | Future<bool> | 进入文件同步模式 / Enter file sync mode | int wifiCtrl: Wi-Fi控制类型 / Wi-Fi control type | bool: 是否成功 / Whether successful |
 | `setFileSyncModeExit` | Future<bool> | 退出文件同步模式 / Exit file sync mode | 无 / None | bool: 是否成功 / Whether successful |
