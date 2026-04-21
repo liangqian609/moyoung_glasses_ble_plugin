@@ -42,6 +42,19 @@ def addNamespaceFromManifest() {
                 println "No package found in ${manifestFile}"
             }
         }
+        
+        // 强制所有子项目使用 compileSdkVersion 35，修复 flutter_bluetooth_serial 的 lStar 问题
+        // Force all subprojects to use compileSdkVersion 35 to fix flutter_bluetooth_serial lStar issue
+        if (buildFile.exists() && buildFile.text.contains("com.android.")) {
+            def content = buildFile.text
+            // 替换 compileSdkVersion 为 35
+            if (content.contains("compileSdkVersion") && !content.contains("compileSdkVersion 35") && !content.contains("compileSdk 35")) {
+                content = content.replaceAll(/compileSdkVersion\s+\d+/, "compileSdkVersion 35")
+                content = content.replaceAll(/compileSdk\s+\d+/, "compileSdk 35")
+                buildFile.write(content)
+                println "Updated compileSdkVersion to 35 for ${project.name}"
+            }
+        }
     }
 }
 

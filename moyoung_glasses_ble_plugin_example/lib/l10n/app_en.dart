@@ -557,4 +557,18 @@ class AppEn {
   static const String sdkLog = 'SDK Log';
   static const String startAudioControlState = 'Start Audio Control';
   static const String realtimeStatus = 'Realtime Status';
+
+  // ==================== Live View ====================
+  static const String liveView = 'Live View';
+  static const String startLive = 'Start Live';
+  static const String stopLive = 'Stop Live';
+  static const String liveActive = 'Live Active';
+  static const String liveInactive = 'Live Inactive';
+  static const String liveUrl = 'Live URL';
+  static const String waitingForLiveUrl = 'Waiting for live URL...';
+  static const String liveStopped = 'Live Stopped';
+  static const String startLiveFailed = 'Start live failed';
+  static const String stopLiveFailed = 'Stop live failed';
+  static const String liveVideo = 'Live Video';
+  static const String waitingForLiveStream = 'Waiting for live stream...';
 }

@@ -78,7 +78,7 @@
 	<key>NSHotspotConfigurationUsageDescription</key>
 	<string>This app needs to configure Wi-Fi hotspot to connect to your device.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>The App requires permission to access the wifi network</string>
+	<string>This app needs local network access to stream live video from your device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>The App requires permission to access the wifi network</string>
 	<key>NSPhotoLibraryUsageDescription</key>

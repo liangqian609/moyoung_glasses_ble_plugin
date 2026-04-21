@@ -6,6 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:moyoung_glasses_ble_plugin/moyoung_glasses_ble.dart';
 import 'package:moyoung_glasses_ble_plugin/impl/moyoung_glasses_beans.dart';
+import 'package:flutter/services.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:media_kit/src/player/native/player/real.dart';
 import 'package:open_filex/open_filex.dart';
 import '../l10n/app_strings.dart';
 import '../utils/toast_util.dart';
@@ -27,6 +31,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
   // 状态管理
   bool _isWifiEnabled = false; // Wi-Fi 是否连接成功
   bool _isFileSyncEnabled = false; // 是否进入文件同步模式
+  bool _isLiveMode = false; // Wi-Fi 是否为直播模式
   List<MediaFileBean> _files = [];
   Set<String> _selectedFiles = {};
   bool _isDownloading = false;
@@ -51,11 +56,39 @@ class _MediaFilePageState extends State<MediaFilePage> {
   StreamSubscription<Map<String, dynamic>>? _runningStatusSubscription;
   StreamSubscription<MediaFileBean>? _mediaFileSubscription;
   StreamSubscription<Map<String, dynamic>>? _mediaFileCountSubscription;
+  StreamSubscription<String>? _liveUrlSubscription;
+
+  // 直播状态
+  bool _isLiveActive = false;
+  String _liveUrl = '';
+  // media_kit 播放器
+  Player? _player;
+  VideoController? _videoController;
 
   @override
   void initState() {
     super.initState();
     print('MediaFilePage initState 被调用');
+
+    // media_kit 播放器初始化（加上 rtsp 协议白名单 + ready 回调设置 RTSP 选项）
+    _player = Player(
+      configuration: PlayerConfiguration(
+        protocolWhitelist: ['udp', 'rtp', 'tcp', 'tls', 'data', 'file', 'http', 'https', 'crypto', 'rtsp'],
+        ready: () {
+          // mpv 初始化完成后才能设置属性
+          final native = _player?.platform as NativePlayer?;
+          if (native != null) {
+            // 强制 RTSP 走 TCP，避免 UDP send failed 导致卡帧
+            native.setProperty('rtsp-transport', 'tcp');
+            // 极低延迟缓存
+            native.setProperty('demuxer-max-bytes', '1048576');
+            native.setProperty('demuxer-max-back-bytes', '524288');
+            print('media_kit: RTSP 选项已设置（rtsp-transport=tcp）');
+          }
+        },
+      ),
+    );
+    _videoController = VideoController(_player!);
 
     _initializePage();
   }
@@ -129,6 +162,9 @@ class _MediaFilePageState extends State<MediaFilePage> {
     _runningStatusSubscription?.cancel();
     _mediaFileSubscription?.cancel();
     _mediaFileCountSubscription?.cancel();
+    _liveUrlSubscription?.cancel();
+    _disposePlayer();
+    _player?.dispose();
     super.dispose();
   }
 
@@ -137,8 +173,16 @@ class _MediaFilePageState extends State<MediaFilePage> {
     _pendingConnectAfterFileSync = false;
 
     final shouldCloseWifi =
-        _isWifiEnabled || _isFileSyncEnabled || _wifiConnectionStatus != 'disconnected';
+        _isWifiEnabled || _isFileSyncEnabled || _isLiveMode || _wifiConnectionStatus != 'disconnected';
     if (!shouldCloseWifi) return;
+
+    // 如果是直播模式，先停止直播再关闭 Wi-Fi
+    if (_isLiveMode) {
+      _disposePlayer();
+      widget.glassesPlugin.stopLive().catchError((e) {
+        print('MediaFilePage dispose: 停止直播失败: $e');
+      });
+    }
 
     widget.glassesPlugin.disableWifi().then((_) {
       print('MediaFilePage dispose: 已触发关闭 Wi-Fi');
@@ -281,6 +325,17 @@ class _MediaFilePageState extends State<MediaFilePage> {
     _actionResultSubscription?.cancel();
     _runningStatusSubscription?.cancel();
     _mediaFileSubscription?.cancel();
+    _liveUrlSubscription?.cancel();
+
+    // 监听直播 URL（只保存，不自动播放，由用户点击开始直播触发）
+    _liveUrlSubscription = widget.glassesPlugin.liveUrlEveStm.listen((url) {
+      print('收到直播 URL: $url');
+      if (url.isNotEmpty) {
+        setState(() {
+          _liveUrl = url;
+        });
+      }
+    });
 
     // 监听操作结果
     _actionResultSubscription = widget.glassesPlugin.actionResultEveStm.listen((data) async {
@@ -386,6 +441,39 @@ class _MediaFilePageState extends State<MediaFilePage> {
     // 监听运行状态（包含Wi-Fi状态）
     _runningStatusSubscription = widget.glassesPlugin.runningStatusEveStm.listen((status) async {
       print('MediaFilePage 收到运行状态事件: $status');
+
+      // 检查直播模式状态
+      if (status.containsKey('livingMode')) {
+        bool livingMode = status['livingMode'] ?? false;
+        if (livingMode && _isLiveMode && _pendingConnectAfterFileSync) {
+          print('livingMode 已就绪，开始自动连接设备 Wi-Fi');
+          _pendingConnectAfterFileSync = false;
+          try {
+            print('等待 5 秒后再连接设备 Wi-Fi');
+            await Future.delayed(const Duration(seconds: 5));
+            if (!mounted || !_isLiveMode) {
+              print('页面已销毁或已退出直播模式，跳过自动连接');
+              return;
+            }
+            await widget.glassesPlugin.connectToDeviceWifi();
+          } catch (e) {
+            print('自动连接设备 Wi-Fi 失败: $e');
+            if (!mounted) return;
+            setState(() {
+              _wifiConnectionStatus = 'disconnected';
+              _isWifiConnecting = false;
+            });
+            ToastUtil.showToast(AppStrings.connectDeviceWifiFailed('$e'));
+          }
+        } else if (!livingMode && _isLiveMode) {
+          print('livingMode 变为 false，直播模式已退出');
+          setState(() {
+            _isLiveMode = false;
+          });
+          _pendingConnectAfterFileSync = false;
+        }
+      }
+
       // 检查文件同步状态
       if (status.containsKey('fileSync')) {
         bool fileSync = status['fileSync'] ?? false;
@@ -398,7 +486,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
           // ToastUtil.showToast(AppStrings.wifiEnabled);
         }
 
-        if (fileSync && _pendingConnectAfterFileSync) {
+        if (fileSync && _pendingConnectAfterFileSync && !_isLiveMode) {
           print('fileSync 已就绪，开始自动连接设备 Wi-Fi');
           _pendingConnectAfterFileSync = false;
           try {
@@ -494,6 +582,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
           _buildFileStatsCard(),
           _buildDownloadProgressSlot(),
           _buildDownloadLocationCard(),
+          _buildLiveViewCard(),
           SizedBox(
             height: 420,
             child: _files.isEmpty
@@ -724,6 +813,146 @@ class _MediaFilePageState extends State<MediaFilePage> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 构建直播视图卡片
+  Widget _buildLiveViewCard() {
+    return Card(
+      margin: EdgeInsets.all(16),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 标题行
+            Row(
+              children: [
+                Icon(Icons.videocam, color: _isLiveActive ? Colors.red : Colors.grey),
+                SizedBox(width: 8),
+                Text(
+                  AppStrings.liveView,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Spacer(),
+                // 直播状态标签
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _isLiveActive ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _isLiveActive ? AppStrings.liveActive : AppStrings.liveInactive,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _isLiveActive ? Colors.red : Colors.grey,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            // 操作按钮
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: (_isLiveActive || !_isWifiEnabled) ? null : _startLive,
+                    icon: Icon(Icons.play_circle),
+                    label: Text(AppStrings.startLive),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.withOpacity(0.1),
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLiveActive ? _stopLive : null,
+                    icon: Icon(Icons.stop_circle),
+                    label: Text(AppStrings.stopLive),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.withOpacity(0.1),
+                      foregroundColor: Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            // 测试播放按钮（用公开 RTSP 流验证播放器）
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _testPlayRtsp,
+                icon: Icon(Icons.science),
+                label: Text('测试播放 RTSP'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.withOpacity(0.1),
+                  foregroundColor: Colors.purple,
+                ),
+              ),
+            ),
+            SizedBox(height: 12),
+            // RTSP URL 显示
+            if (_liveUrl.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.liveUrl,
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      _liveUrl,
+                      style: TextStyle(fontSize: 13, fontFamily: 'monospace'),
+                    ),
+                  ],
+                ),
+              )
+            else if (_isLiveActive)
+              Text(
+                AppStrings.waitingForLiveUrl,
+                style: TextStyle(fontSize: 13, color: Colors.orange),
+              ),
+            // 视频播放器（media_kit）
+            if (_isLiveActive && _player != null) ...[
+              SizedBox(height: 12),
+              Text(
+                AppStrings.liveVideo,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                height: 220,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Video(
+                    controller: _videoController!,
+                    width: double.infinity,
+                    height: 220,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -1042,26 +1271,68 @@ class _MediaFilePageState extends State<MediaFilePage> {
     );
   }
 
-  /// 开启Wi-Fi
+  /// 开启Wi-Fi（选择模式：文件同步 or 直播）
   Future<void> _enableWifi() async {
+    final wifiType = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(AppStrings.enableWifi),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 1),
+            child: Row(
+              children: [
+                Icon(Icons.folder, color: Colors.blue),
+                SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(AppStrings.wifiFileSync, style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(AppStrings.enableFileTransfer, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 3),
+            child: Row(
+              children: [
+                Icon(Icons.videocam, color: Colors.red),
+                SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(AppStrings.liveView, style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(AppStrings.startLive, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (wifiType == null) return; // 用户取消
+
     try {
-      // 设置 loading 状态
       setState(() {
         _isWifiConnecting = true;
         _wifiConnectionStatus = 'connecting';
+        _isLiveMode = wifiType == 3;
       });
       _pendingConnectAfterFileSync = true;
-      
+
       await widget.glassesPlugin.enableWifi(
-        wifiType: 1, // 1-文件同步模式
+        wifiType: wifiType, // 1-文件同步, 3-直播
       );
       ToastUtil.showToast(AppStrings.wifiEnabledWaitingAutoConnect);
-      print('Wi-Fi 开启成功，等待 fileSync=true 后自动连接设备 Wi-Fi');
+      print('Wi-Fi 开启成功(wifiType=$wifiType)，等待连接设备 Wi-Fi');
     } catch (e) {
       print('开启 Wi-Fi 失败: $e');
       ToastUtil.showToast('${AppStrings.enableWifiFailed}: $e');
       _pendingConnectAfterFileSync = false;
-      // 失败时取消 loading
       setState(() {
         _wifiConnectionStatus = 'disconnected';
         _isWifiConnecting = false;
@@ -1077,12 +1348,107 @@ class _MediaFilePageState extends State<MediaFilePage> {
       setState(() {
         _isWifiEnabled = false;
         _isFileSyncEnabled = false;
+        _isLiveMode = false;
         _wifiConnectionStatus = 'disconnected';
         _files.clear();
       });
       ToastUtil.showToast(AppStrings.wifiDisabled);
     } catch (e) {
       ToastUtil.showToast('${AppStrings.disableWifiFailed}: $e');
+    }
+  }
+
+  /// 开启直播（Wi-Fi 已连接后由用户主动触发）
+  Future<void> _startLive() async {
+    if (!_isWifiEnabled) {
+      ToastUtil.showToast(AppStrings.enableWifi);
+      return;
+    }
+    if (_liveUrl.isEmpty) {
+      ToastUtil.showToast(AppStrings.waitingForLiveUrl);
+      return;
+    }
+    setState(() {
+      _isLiveActive = true;
+    });
+    final isReady = await _waitForRtspEndpointReady(_liveUrl);
+    if (!mounted || !_isLiveActive) return;
+    if (!isReady) {
+      ToastUtil.showToast('直播地址暂时不可连接，请稍后重试');
+      return;
+    }
+    await _initAndPlayMedia(_liveUrl);
+  }
+
+  /// 初始化 media_kit 播放器并播放指定 URL
+  Future<void> _initAndPlayMedia(String url) async {
+    if (!mounted || !_isLiveActive || _player == null) return;
+    // media_kit 的 Player 在 initState 时已创建，直接打开媒体
+    await _player!.open(Media(url));
+    print('media_kit 播放已启动: $url');
+    setState(() {});
+  }
+
+  Future<bool> _waitForRtspEndpointReady(String url) async {
+    final uri = Uri.tryParse(url);
+    final host = uri?.host ?? '';
+    final port = uri?.hasPort == true ? uri!.port : 554;
+    if (host.isEmpty) {
+      print('RTSP 地址解析失败: $url');
+      return false;
+    }
+    for (var attempt = 1; attempt <= 12; attempt++) {
+      Socket? socket;
+      try {
+        print('检查 RTSP 端点连通性: $host:$port，第 $attempt 次');
+        socket = await Socket.connect(
+          host,
+          port,
+          timeout: const Duration(milliseconds: 800),
+        );
+        await socket.close();
+        print('RTSP 端点已可连接: $host:$port');
+        return true;
+      } catch (e) {
+        print('RTSP 端点暂不可连接: $host:$port，第 $attempt 次，$e');
+        await socket?.close();
+        if (attempt < 12) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+    }
+    print('RTSP 端点检查失败，放弃启动播放器: $host:$port');
+    return false;
+  }
+
+  /// 释放 media_kit 播放器（同步，Player 在 dispose 时统一释放）
+  void _disposePlayer() {
+    _player?.stop();
+  }
+
+  /// 测试播放公开 RTSP 流，验证 media_kit 播放器是否正常
+  void _testPlayRtsp() {
+    const testUrl = 'rtsp://stream.strba.sk:1935/strba/VYHLAD_JAZERO.stream';
+    print('测试播放 RTSP 流: $testUrl');
+    setState(() {
+      _liveUrl = testUrl;
+      _isLiveActive = true;
+    });
+    _initAndPlayMedia(testUrl);
+  }
+
+  /// 停止直播
+  Future<void> _stopLive() async {
+    try {
+      await widget.glassesPlugin.stopLive();
+      _disposePlayer();
+      setState(() {
+        _isLiveActive = false;
+        _liveUrl = '';
+      });
+      ToastUtil.showToast(AppStrings.liveStopped);
+    } catch (e) {
+      ToastUtil.showToast('${AppStrings.stopLiveFailed}: $e');
     }
   }
 

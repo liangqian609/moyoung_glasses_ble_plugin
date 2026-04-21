@@ -18,6 +18,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'l10n/app_strings.dart';
 import 'utils/locale_manager.dart';
 import 'pages/media_file_page.dart';
+import 'package:media_kit/media_kit.dart';
 import 'dual_plugin_example.dart';
 
 //region 数据类定义
@@ -25,6 +26,8 @@ import 'dual_plugin_example.dart';
 //endregion
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   runApp(const MyApp());
 }
 

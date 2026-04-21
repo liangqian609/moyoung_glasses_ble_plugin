@@ -19,6 +19,25 @@
 
 -keep class com.crrepa.ble.** { *; }
 -keep class com.moyoung.moyoung_ble_plugin.** { *; }
+
+# 抑制 SDK 中引用但未包含的类的警告
+# Suppress warnings for classes referenced but not included in SDK
+-dontwarn com.blankj.utilcode.util.ArrayUtils
+-dontwarn com.blankj.utilcode.util.ConvertUtils
+-dontwarn com.jieli.bmp_convert.BmpConvert
+-dontwarn com.jieli.bmp_convert.OnConvertListener
+-dontwarn com.realsil.sdk.core.bluetooth.BluetoothProfileManager
+-dontwarn com.yanzhenjie.kalle.BodyRequest$Api
+-dontwarn com.yanzhenjie.kalle.Canceller
+-dontwarn com.yanzhenjie.kalle.JsonBody
+-dontwarn com.yanzhenjie.kalle.Kalle
+-dontwarn com.yanzhenjie.kalle.Request$Api
+-dontwarn com.yanzhenjie.kalle.RequestBody
+-dontwarn com.yanzhenjie.kalle.StringBody
+-dontwarn com.yanzhenjie.kalle.simple.Callback
+-dontwarn com.yanzhenjie.kalle.simple.SimpleBodyRequest$Api
+-dontwarn com.yanzhenjie.kalle.simple.SimpleCallback
+
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);

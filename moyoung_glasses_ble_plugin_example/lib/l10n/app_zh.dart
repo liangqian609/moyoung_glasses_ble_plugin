@@ -558,4 +558,18 @@ class AppZh {
   static const String sdkLog = 'SDK日志';
   static const String startAudioControlState = '开始音频控制';
   static const String realtimeStatus = '实时状态';
+
+  // ==================== 直播视图 / Live View ====================
+  static const String liveView = '直播视图';
+  static const String startLive = '开启直播';
+  static const String stopLive = '停止直播';
+  static const String liveActive = '直播中';
+  static const String liveInactive = '未开启直播';
+  static const String liveUrl = '直播地址';
+  static const String waitingForLiveUrl = '等待获取直播地址...';
+  static const String liveStopped = '直播已停止';
+  static const String startLiveFailed = '开启直播失败';
+  static const String stopLiveFailed = '停止直播失败';
+  static const String liveVideo = '直播视频';
+  static const String waitingForLiveStream = '等待直播流...';
 }

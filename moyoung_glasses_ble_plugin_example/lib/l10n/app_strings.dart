@@ -1628,4 +1628,42 @@ class AppStrings {
   
   /// 实时状态
   static String get realtimeStatus => isZh ? AppZh.realtimeStatus ?? '实时状态' : AppEn.realtimeStatus ?? 'Realtime Status';
+
+  // ==================== 直播视图 / Live View ====================
+
+  /// 直播视图
+  static String get liveView => isZh ? AppZh.liveView : AppEn.liveView;
+
+  /// 开启直播
+  static String get startLive => isZh ? AppZh.startLive : AppEn.startLive;
+
+  /// 停止直播
+  static String get stopLive => isZh ? AppZh.stopLive : AppEn.stopLive;
+
+  /// 直播中
+  static String get liveActive => isZh ? AppZh.liveActive : AppEn.liveActive;
+
+  /// 未开启直播
+  static String get liveInactive => isZh ? AppZh.liveInactive : AppEn.liveInactive;
+
+  /// 直播地址
+  static String get liveUrl => isZh ? AppZh.liveUrl : AppEn.liveUrl;
+
+  /// 等待获取直播地址
+  static String get waitingForLiveUrl => isZh ? AppZh.waitingForLiveUrl : AppEn.waitingForLiveUrl;
+
+  /// 直播已停止
+  static String get liveStopped => isZh ? AppZh.liveStopped : AppEn.liveStopped;
+
+  /// 开启直播失败
+  static String get startLiveFailed => isZh ? AppZh.startLiveFailed : AppEn.startLiveFailed;
+
+  /// 停止直播失败
+  static String get stopLiveFailed => isZh ? AppZh.stopLiveFailed : AppEn.stopLiveFailed;
+
+  /// 直播视频
+  static String get liveVideo => isZh ? AppZh.liveVideo : AppEn.liveVideo;
+
+  /// 等待直播流
+  static String get waitingForLiveStream => isZh ? AppZh.waitingForLiveStream : AppEn.waitingForLiveStream;
 }

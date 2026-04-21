@@ -48,10 +48,15 @@ dependencies:
   flutter_foreground_task: ^5.0.0
   flutter_bluetooth_serial: ^0.4.0
   flutter_image_compress: ^2.4.0
-  image: ^3.0.0
+  image: ^4.0.0
   shared_preferences: ^2.2.2
   flutter_localizations:
     sdk: flutter
+
+  # 直播播放 / Live streaming playback（media_kit 基于 libmpv，RTSP 支持成熟）
+  media_kit: ^1.1.11
+  media_kit_video: ^1.2.5
+  media_kit_libs_video: ^1.0.5
 dev_dependencies:
   flutter_test:
     sdk: flutter
