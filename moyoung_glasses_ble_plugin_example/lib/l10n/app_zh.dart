@@ -19,9 +19,9 @@ class AppZh {
   static const String enableWifi = '开启Wi-Fi';
   static const String disableWifi = '关闭Wi-Fi';
   static const String otaUpgrade = 'OTA升级';
-  static const String jlOtaUpgrade = '杰里OTA升级';
-  static const String cancelJlOta = '取消杰里OTA';
-  static const String qzOtaUpgrade = '全志OTA升级';
+  static const String jlOtaUpgrade = '固件升级';
+  static const String cancelJlOta = '取消固件升级';
+  static const String qzOtaUpgrade = '影像版本升级';
   static const String setVoiceWakeup = '设置语音唤醒';
   static const String exitVoice = '退出语音';
   static const String chinese = '中文';
@@ -40,9 +40,9 @@ class AppZh {
   static const String cancellingOta = '正在取消OTA升级...';
   static const String otaCancelled = 'OTA升级已取消';
   static const String cancelOtaFailed = '取消OTA升级失败';
-  static const String jlOtaStarted = '杰里OTA升级已启动';
-  static const String jlOtaStartFailed = '杰里OTA升级启动失败';
-  static const String qzOtaNotImplemented = '全志OTA功能暂未实现';
+  static const String jlOtaStarted = '固件升级已启动';
+  static const String jlOtaStartFailed = '固件升级启动失败';
+  static const String qzOtaNotImplemented = '影像版本升级功能暂未实现';
   
   // ==================== 功能模块 / Feature Modules ====================
   static const String basicFunctions = '基础功能';
@@ -68,7 +68,7 @@ class AppZh {
   static const String factoryReset = '恢复出厂设置';
   static const String checkFirmwareUpdate = '检查固件更新';
   static const String selectFirmware = '选择固件文件进行升级';
-  static const String onlyJlCancellable = '仅杰里芯片可取消';
+  static const String onlyJlCancellable = '仅固件升级可取消';
   static const String wifiOtaNote = '通过WiFi升级固件（不可取消）';
   static const String selectFirmwareFile = '请选择固件文件...';
   
@@ -271,8 +271,8 @@ class AppZh {
   static const String unknownDevice = '未知设备';
   static const String connect = '连接';
   static const String signalStrength = '信号强度';
-  static const String jieLi = '杰理';
-  static const String quanZhi = '全志';
+  static const String jieLi = '固件';
+  static const String quanZhi = '影像版本';
   static const String unknown = '未知';
   static const String disconnectAndRemove = '断开并移除设备';
   static const String removeAndDisconnect = '移除断开连接';
@@ -327,6 +327,8 @@ class AppZh {
   static const String otaUpgradeFunction = 'OTA升级功能';
   static const String currentVersionInfo = '当前版本信息';
   static const String versionInfo = '版本信息';
+  static const String versionAndOta = '版本与升级';
+  static const String versionAndOtaSubtitle = '查看版本信息、检查更新、OTA升级';
   static const String queryDeviceVersion = '查询设备版本';
   static const String queryJLVersion = '查询固件版本';
   static const String queryAllwinnerVersion = '查询影像系统版本';

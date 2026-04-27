@@ -30,9 +30,9 @@ dependencies:
 #  bluetooth_enable_fork: ^0.1.6
   open_filex: ^4.5.0
 
-  moyoung_glasses_ble_plugin: ^1.1.3
-  # moyoung_glasses_ble_plugin:
-  #   path: ../
+  # moyoung_glasses_ble_plugin: ^1.1.3
+  moyoung_glasses_ble_plugin:
+    path: ../
     # When depending on this package from a real application you should use:
     #   moyoung_glasses_ble_plugin: ^x.y.z
     # See https://dart.dev/tools/pub/dependencies#version-constraints
@@ -75,6 +75,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/firmware/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -25,7 +25,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  moyoung_glasses_ble_plugin: ^1.0.0
+  moyoung_glasses_ble_plugin: ^1.2.2
 ```
 
 ### Basic Usage
@@ -91,4 +91,4 @@ For technical support and questions:
 
 ---
 
-*Last Updated: 2026-01-26*
+*Last Updated: 2026-04-27*

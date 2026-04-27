@@ -20,9 +20,9 @@ class AppEn {
   static const String enableWifi = 'Enable Wi-Fi';
   static const String disableWifi = 'Disable Wi-Fi';
   static const String otaUpgrade = 'OTA Upgrade';
-  static const String jlOtaUpgrade = 'JL OTA Upgrade';
-  static const String cancelJlOta = 'Cancel JL OTA';
-  static const String qzOtaUpgrade = 'QZ OTA Upgrade';
+  static const String jlOtaUpgrade = 'Firmware Upgrade';
+  static const String cancelJlOta = 'Cancel Firmware Upgrade';
+  static const String qzOtaUpgrade = 'Image Version Upgrade';
   static const String setVoiceWakeup = 'Set Voice Wakeup';
   static const String exitVoice = 'Exit Voice';
   static const String chinese = '中文';
@@ -39,9 +39,9 @@ class AppEn {
   static const String cancellingOta = 'Cancelling OTA upgrade...';
   static const String otaCancelled = 'OTA upgrade cancelled';
   static const String cancelOtaFailed = 'Failed to cancel OTA upgrade';
-  static const String jlOtaStarted = 'JL OTA upgrade started';
-  static const String jlOtaStartFailed = 'Failed to start JL OTA upgrade';
-  static const String qzOtaNotImplemented = 'QZ OTA function not yet implemented';
+  static const String jlOtaStarted = 'Firmware upgrade started';
+  static const String jlOtaStartFailed = 'Failed to start firmware upgrade';
+  static const String qzOtaNotImplemented = 'Image version upgrade not yet implemented';
   
   // ==================== Feature Modules ====================
   static const String basicFunctions = 'Basic Functions';
@@ -271,8 +271,8 @@ class AppEn {
   static const String unknownDevice = 'Unknown Device';
   static const String connect = 'Connect';
   static const String signalStrength = 'Signal Strength';
-  static const String jieLi = 'JieLi';
-  static const String quanZhi = 'QuanZhi';
+  static const String jieLi = 'Firmware';
+  static const String quanZhi = 'Image Version';
   static const String unknown = 'Unknown';
   static const String disconnectAndRemove = 'Disconnect and Remove Device';
   static const String removeAndDisconnect = 'Remove and Disconnect';
@@ -326,6 +326,8 @@ class AppEn {
   static const String otaUpgradeFunction = 'OTA Upgrade Function';
   static const String currentVersionInfo = 'Current Version Info';
   static const String versionInfo = 'Version Info';
+  static const String versionAndOta = 'Version & OTA';
+  static const String versionAndOtaSubtitle = 'View version info, check updates, OTA upgrade';
   static const String queryDeviceVersion = 'Query Device Version';
   static const String queryJLVersion = 'Query Firmware Version';
   static const String queryAllwinnerVersion = 'Query Imaging System Version';

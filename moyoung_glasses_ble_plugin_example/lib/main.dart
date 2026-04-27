@@ -18,6 +18,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'l10n/app_strings.dart';
 import 'utils/locale_manager.dart';
 import 'pages/media_file_page.dart';
+import 'pages/version_ota_page.dart';
 import 'package:media_kit/media_kit.dart';
 import 'dual_plugin_example.dart';
 
@@ -54,15 +55,9 @@ class _MyAppState extends State<MyApp> {
   bool _isCharging = false;
   String _wearCheckState = AppStrings.unknown;
   String _deviceVersion = AppStrings.unknown;
-  String _jlVersion = AppStrings.unknown;
-  String _qzVersion = AppStrings.unknown;
-  String _tpVersion = AppStrings.unknown;
-  String _githashVersion = AppStrings.unknown;
   
   // 存储实际值，用于语言切换时重新格式化
   int _actualBatteryLevel = 0;
-  String _actualJlVersion = '';
-  String _actualQzVersion = '';
   String _actualLanguageStatus = '';
   String _actualDeviceUUIDStatus = '';
   String _actualVoiceWakeupStatus = '';
@@ -92,9 +87,7 @@ class _MyAppState extends State<MyApp> {
   String _deviceUUIDStatus = AppStrings.clickToGet;     // 设备UUID状态
   String _voiceWakeupStatus = AppStrings.clickToGet;   // 语音唤醒状态
   String _runningStatus = AppStrings.clickToGet;       // 运行状态
-  String _otaStatus = AppStrings.waitingOtaStatus;        // OTA升级状态
   String _sdkLogStatus = AppStrings.waitingSdkLog;      // SDK日志状态
-  String _checkVersionResult = AppStrings.clickToGet;  // 检查版本结果状态
   String? _cachedMacAddress;               // 缓存的 MAC 地址
   String? _cachedDeviceName;               // 缓存的设备名称
   
@@ -103,10 +96,9 @@ class _MyAppState extends State<MyApp> {
   String _audioTalkState = AppStrings.notSet;        // 音频控制状态
   int _selectedAudioAction = 1;            // 选择的音频动作类型
   String _bluetoothState = AppStrings.unknown;         // 蓝牙状态
-  int _selectedAIStatus = 0;               // 选择的AI回复状态类型
   int _selectedFrameRate = 0;             // 选择的录像帧率
   int _selectedMaxDuration = 60;          // 选择的录像最大时长
-  int _selectedVoiceWakeupAction = 0;     // 选择的语音唤醒操作：0=开启(TypeOn)，1=关闭(TypeOff)
+  int? _selectedVoiceWakeupAction;     // 选择的语音唤醒操作：0=开启(TypeOn)，1=关闭(TypeOff)，null=未选择
   int _currentLanguageSelection = 1;     // 当前选择的语言：0=English，1=中文
 
   //endregion
@@ -173,18 +165,6 @@ class _MyAppState extends State<MyApp> {
           ? AppStrings.batteryDisplay("$_actualBatteryLevel", _isCharging)
           : AppStrings.unknownStatus;
       
-      _deviceVersion = _actualJlVersion.isNotEmpty 
-          ? "${AppStrings.firmwareVersion}: $_actualJlVersion"
-          : AppStrings.unknownStatus;
-      
-      _jlVersion = _actualJlVersion.isNotEmpty 
-          ? AppStrings.jlVersion(_actualJlVersion)
-          : AppStrings.unknownStatus;
-      
-      _qzVersion = _actualQzVersion.isNotEmpty 
-          ? AppStrings.qzVersion(_actualQzVersion)
-          : AppStrings.unknownStatus;
-      
       _languageStatus = _actualLanguageStatus.isNotEmpty 
           ? _actualLanguageStatus 
           : AppStrings.clickToGet;
@@ -210,14 +190,12 @@ class _MyAppState extends State<MyApp> {
           : AppStrings.unknownStatus;
       
       // 这些状态文本根据当前语言重新设置
-      _githashVersion = AppStrings.unknownStatus;
       _audioDataStatus = AppStrings.noAudioData;
       _aiImageDataStatus = AppStrings.noAiImageData;
       _aiConversationStatus = AppStrings.aiStatusNotStarted;
       _translateAudioStatus = AppStrings.noTranslationAudio;
       _pcmAudioStatus = AppStrings.noPcmAudio;
       _audioRecordStatus = AppStrings.clickToGet;
-      _otaStatus = AppStrings.waitingOtaStatus;
       _sdkLogStatus = AppStrings.waitingSdkLog;
       
       // 重置图片数据相关变量
@@ -246,9 +224,6 @@ class _MyAppState extends State<MyApp> {
       _connectionStatus = AppStrings.disconnected;
       _batteryLevel = AppStrings.unknownStatus;
       _deviceVersion = AppStrings.unknownStatus;
-      _jlVersion = AppStrings.unknownStatus;
-      _qzVersion = AppStrings.unknownStatus;
-      _githashVersion = AppStrings.unknownStatus;
       _audioDataStatus = AppStrings.noAudioData;
       _aiImageDataStatus = AppStrings.noAiImageData;
       _aiConversationStatus = AppStrings.aiStatusNotStarted;
@@ -261,7 +236,6 @@ class _MyAppState extends State<MyApp> {
       _deviceUUIDStatus = AppStrings.clickToGet;
       _voiceWakeupStatus = AppStrings.clickToGet;
       _runningStatus = AppStrings.clickToGet;
-      _otaStatus = AppStrings.waitingOtaStatus;
       _sdkLogStatus = AppStrings.waitingSdkLog;
       _audioTalkState = AppStrings.notSet;
       _bluetoothState = AppStrings.unknownStatus;
@@ -550,25 +524,6 @@ class _MyAppState extends State<MyApp> {
       }),
     );
     
-    // 监听OTA升级状态
-    _streamSubscriptions.add(
-      _glassesPlugin.otaStateEveStm.listen((Map<String, dynamic> data) {
-        debugPrint('Received OTA upgrade event: $data');
-        int type = data['type'] ?? 0;
-        int progress = data['progress'] ?? 0;
-        String typeText = type == 0 ? 'Preparing' : type == 1 ? 'Upgrading' : type == 2 ? 'Complete' : 'Failed';
-        
-        setState(() {
-          _otaStatus = "$typeText (${progress}%)";
-        });
-        
-        // 只在重要状态变化时显示Toast
-        if (type == 2 || type == 3) {
-          _showToast(typeText);
-        }
-      }),
-    );
-    
     // 监听SDK日志
     debugPrint('开始监听 SDK 日志事件流...');
     _streamSubscriptions.add(
@@ -770,33 +725,13 @@ class _MyAppState extends State<MyApp> {
                     _buildMediaFileSection(),
                     const SizedBox(height: 20),
 
-                    // AI 功能
-                    // _buildAISection(),
-                    // const SizedBox(height: 20),
-
-                    // Wi-Fi 功能（文件同步）
-                    // _buildWifiSection(),
-                    // const SizedBox(height: 20),
-
                     // 录音功能
                     _buildRecordSection(),
                     const SizedBox(height: 20),
 
-                    // 用户信息和设置 - 已屏蔽
-                    // _buildUserInfoSection(),
-                    // const SizedBox(height: 20),
-
-                    // 直播功能 - 已屏蔽
-                    // _buildLiveSection(),
-                    // const SizedBox(height: 20),
-
-                    // 版本信息
-                    _buildVersionInfoSection(),
+                    // 版本信息 & OTA 升级
+                    _buildVersionOtaSection(),
                     const SizedBox(height: 20),
-
-                    // OTA 升级功能
-                    // _buildOTASection(),
-                    // const SizedBox(height: 20),
 
                     // SDK 日志显示
                     _buildSDKLogSection(),
@@ -1447,219 +1382,6 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Widget _buildAISection() {
-    return _buildSectionCard(
-      title: AppStrings.aiFunctions,
-      icon: Icons.psychology,
-      children: [
-        // 翻译音频数据状态显示
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.translate, color: Colors.green[600], size: 20),
-              const SizedBox(width: 8),
-              Text(
-                AppStrings.stopAudioStatus,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.green[600],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  _translateAudioStatus,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.chat, color: Colors.grey[600]),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButton<int>(
-                  value: _selectedAIStatus,
-                  isExpanded: true,
-                  items: [
-                    DropdownMenuItem(value: 0, child: Text(AppStrings.startAiReply)),
-                    DropdownMenuItem(value: 1, child: Text(AppStrings.completeAiReply)),
-                    DropdownMenuItem(value: 2, child: Text(AppStrings.interruptAiReply)),
-                  ],
-                  onChanged: _isConnected ? (value) {
-                    setState(() {
-                      _selectedAIStatus = value!;
-                    });
-                  } : null,
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: _isConnected ? _setAIReplyStatus : null,
-                child: Text(AppStrings.send),
-              ),
-            ],
-          ),
-        ),
-        _buildApiButton(
-          AppStrings.exitVoice,
-          Icons.stop_circle,
-          _exitAIReply,
-          subtitle: AppStrings.exitVoiceReplyState,
-          enabled: _isConnected,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWifiSection() {
-    return _buildSectionCard(
-      title: AppStrings.wifiFileSync,
-      icon: Icons.wifi,
-      children: [
-        _buildApiButton(
-          AppStrings.enterFileSyncMode,
-          Icons.sync,
-          _setFileSyncModeEnter,
-          subtitle: AppStrings.enableFileTransfer,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.exitFileSyncMode,
-          Icons.sync_disabled,
-          _setFileSyncModeExit,
-          subtitle: AppStrings.disableFileTransfer,
-          enabled: _isConnected,
-        ),
-        // 视频配置功能暂时禁用
-        /*
-        _buildApiButton(
-          AppStrings.getDefaultVideoParams,
-          Icons.settings,
-          _queryVideoConfig,
-          subtitle: AppStrings.getVideoDefaultParams,
-          enabled: _isConnected,
-        ),
-        */
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppStrings.setVideoDefaultParams,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppStrings.frameRate,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        DropdownButton<int>(
-                          value: _selectedFrameRate,
-                          isExpanded: true,
-                          items: [
-                            DropdownMenuItem(value: 0, child: Text(AppStrings.notSet)),
-                            DropdownMenuItem(value: 15, child: Text(AppStrings.fps15)),
-                            DropdownMenuItem(value: 24, child: Text(AppStrings.fps24)),
-                            DropdownMenuItem(value: 30, child: Text(AppStrings.fps30)),
-                            DropdownMenuItem(value: 60, child: Text(AppStrings.fps60)),
-                          ],
-                          onChanged: _isConnected ? (value) {
-                            setState(() {
-                              _selectedFrameRate = value!;
-                            });
-                          } : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppStrings.maxDuration,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        DropdownButton<int>(
-                          value: _selectedMaxDuration,
-                          isExpanded: true,
-                          items: [
-                            DropdownMenuItem(value: 30, child: Text(AppStrings.seconds30)),
-                            DropdownMenuItem(value: 60, child: Text(AppStrings.seconds60)),
-                            DropdownMenuItem(value: 120, child: Text(AppStrings.seconds120)),
-                            DropdownMenuItem(value: 300, child: Text(AppStrings.seconds300)),
-                          ],
-                          onChanged: _isConnected ? (value) {
-                            setState(() {
-                              _selectedMaxDuration = value!;
-                            });
-                          } : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  // 视频配置功能暂时禁用
-                  onPressed: () => _showToast("视频配置功能暂时禁用"),
-                  child: Text(AppStrings.applySettings),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildRecordSection() {
     return _buildSectionCard(
@@ -1691,210 +1413,20 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Widget _buildUserInfoSection() {
-    return _buildSectionCard(
-      title: AppStrings.userInfoSettings,
-      icon: Icons.person_outline,
-      children: [
-        // 设置用户信息功能已移除
-        /*
-        _buildApiButton(
-          AppStrings.setUserInfo,
-          Icons.person,
-          _setUserInfo,
-          subtitle: AppStrings.setUserInfoFunction,
-          enabled: _isConnected,
-        ),
-        */
-        // 语言设置功能已移至设备基础功能模块，避免重复
-      ],
-    );
-  }
 
-  Widget _buildLiveSection() {
-    return _buildSectionCard(
-      title: AppStrings.liveFunction,
-      icon: Icons.live_tv,
-      children: [
-        // 直播功能已移除
-        /*
-        _buildApiButton(
-          AppStrings.enterLiveMode,
-          Icons.live_tv,
-          _enterLiveStream,
-          subtitle: AppStrings.enterLiveModeFunction,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.exitLiveMode,
-          Icons.live_tv_off,
-          _exitLiveStream,
-          subtitle: AppStrings.exitLiveModeFunction,
-          enabled: _isConnected,
-        ),
-        */
-      ],
-    );
-  }
-
-  Widget _buildVersionInfoSection() {
+  Widget _buildVersionOtaSection() {
     return _buildSectionCard(
       title: AppStrings.versionInfo,
       icon: Icons.info,
       children: [
-        _buildApiButton(
-          AppStrings.queryJLVersion,
-          Icons.memory,
-          _getJLVersion,
-          subtitle: _jlVersion,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.queryAllwinnerVersion,
-          Icons.developer_board,
-          _getQZVersion,
-          subtitle: _qzVersion,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.queryTPVersion,
-          Icons.touch_app,
-          _getTPVersion,
-          subtitle: _tpVersion,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.queryGitHashVersion,
-          Icons.code,
-          _getGithashVersion,
-          subtitle: _githashVersion,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.checkLatestVersion,
-          Icons.system_update_alt,
-          _checkLatestVersion,
-          subtitle: _checkVersionResult,
-          enabled: _isConnected,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOTASection() {
-    return _buildSectionCard(
-      title: AppStrings.otaUpgradeFunction,
-      icon: Icons.system_update,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        Builder(
+          builder: (context) => _buildApiButton(
+            AppStrings.versionAndOta,
+            Icons.system_update,
+            () => _navigateToVersionOtaPage(context),
+            subtitle: AppStrings.versionAndOtaSubtitle,
+            enabled: _isConnected,
           ),
-          child: Row(
-            children: [
-              Icon(Icons.system_update, size: 20, color: Colors.orange[700]),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppStrings.otaUpgradeStatus,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _otaStatus,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.orange[700],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 分隔线
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Divider(height: 1, color: Colors.grey[300]),
-        ),
-        // OTA升级子标题
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Icon(Icons.system_update_alt, size: 20, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                AppStrings.selectFirmware,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 分隔线
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Divider(height: 1, color: Colors.grey[300]),
-        ),
-        // OTA升级子标题
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Icon(Icons.system_update, size: 20, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                'OTA升级功能',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-        _buildApiButton(
-          AppStrings.jlOtaUpgrade,
-          Icons.memory,
-          _startJLOTA,
-          subtitle: AppStrings.selectFirmwareFile,
-          enabled: _isConnected,
-        ),
-        _buildApiButton(
-          AppStrings.cancelJlOta,
-          Icons.cancel,
-          _cancelOTA,
-          subtitle: AppStrings.onlyJlCancellable,
-          enabled: _isConnected,
-        ),
-        // 分隔线
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Divider(height: 1, color: Colors.grey[300]),
-        ),
-        _buildApiButton(
-          AppStrings.qzOtaUpgrade,
-          Icons.developer_board,
-          _startQZOTA,
-          subtitle: AppStrings.wifiOtaNote,
-          enabled: _isConnected,
         ),
       ],
     );
@@ -2014,6 +1546,7 @@ class _MyAppState extends State<MyApp> {
                         DropdownButton<int>(
                           value: _selectedVoiceWakeupAction,
                           isExpanded: true,
+                          hint: Text('请选择操作类型'),
                           items: [
                             DropdownMenuItem(value: 0, child: Text(AppStrings.enableVoiceWakeupTypeOn)),
                             DropdownMenuItem(value: 1, child: Text(AppStrings.disableVoiceWakeupTypeOff)),
@@ -2033,8 +1566,8 @@ class _MyAppState extends State<MyApp> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isConnected ? _setVoiceWakeup : null,
-                  child: Text(_selectedVoiceWakeupAction == 0 ? AppStrings.enableVoiceWakeup : AppStrings.disableVoiceWakeup),
+                  onPressed: (_isConnected && _selectedVoiceWakeupAction != null) ? _setVoiceWakeup : null,
+                  child: Text(_selectedVoiceWakeupAction == 0 ? AppStrings.enableVoiceWakeup : (_selectedVoiceWakeupAction == 1 ? AppStrings.disableVoiceWakeup : AppStrings.setVoiceWakeup)),
                 ),
               ),
             ],
@@ -2103,6 +1636,22 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  /// 导航到版本信息 & OTA 升级页面
+  void _navigateToVersionOtaPage(BuildContext context) {
+    if (!mounted) return;
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VersionOtaPage(
+          glassesPlugin: _glassesPlugin,
+          isConnected: _isConnected,
+          cachedMacAddress: _cachedMacAddress,
+        ),
+      ),
+    );
+  }
+
   //endregion
 
 
@@ -2112,6 +1661,10 @@ class _MyAppState extends State<MyApp> {
   //region UI构建辅助方法
 
   // ==================== UI 构建方法 ====================
+  
+  void _showToast(String message) {
+    ToastUtil.showToast(message);
+  }
   
 
   
@@ -2421,9 +1974,7 @@ class _MyAppState extends State<MyApp> {
     try {
       String version = await _glassesPlugin.queryDeviceVersion(versionType: 1);
       setState(() {
-        _actualJlVersion = version;
         _deviceVersion = "${AppStrings.firmwareVersion}: $version";
-        _jlVersion = AppStrings.jlVersion(version);
       });
       _showToast(AppStrings.versionQuerySuccess + ": $version");
     } catch (e) {
@@ -2496,24 +2047,6 @@ class _MyAppState extends State<MyApp> {
   //     await _glassesPlugin.stopVideo();
   //   } catch (e) {
   //     _showToast(AppStrings.videoStopFailed + ": $e");
-  //   }
-  // }
-  
-  // 暂时禁用
-  // void _queryVideoConfig() async {
-  //   try {
-  //     Map<String, dynamic> config = await _glassesPlugin.queryVideoConfig();
-  //     debugPrint('Retrieved config: $config');
-  //
-  //     // 安全地获取参数值
-  //     final frameRate = config['frameRate'] ?? '未知';
-  //     final maxDuration = config['maxDuration'] ?? '未知';
-  //
-  //     String configStr = AppStrings.videoConfigParams(frameRate, maxDuration);
-  //     _showToast(AppStrings.videoParams(configStr));
-  //   } catch (e) {
-  //     debugPrint('Error getting video parameters: $e');
-  //     _showToast(AppStrings.getVideoParamsFailed + ": $e");
   //   }
   // }
   
@@ -2726,43 +2259,6 @@ class _MyAppState extends State<MyApp> {
 
   //region AI功能方法
 
-  // ==================== AI 功能方法 ====================
-  
-  /// 设置 AI 回复状态
-  /// 调用 SDK 的 setAIReplyStatus 方法
-  void _setAIReplyStatus() async {
-    try {
-      await _glassesPlugin.setAIReplyStatus(status: _selectedAIStatus);
-      
-      String statusText = '';
-      switch (_selectedAIStatus) {
-        case 0:
-          statusText = AppStrings.startAiReply;
-          break;
-        case 1:
-          statusText = AppStrings.completeAiReply;
-          break;
-        case 2:
-          statusText = AppStrings.interruptAiReply;
-          break;
-      }
-      
-      _showToast(AppStrings.aiReplyStatusSet(statusText));
-    } catch (e) {
-      _showToast(AppStrings.setAiReplyStatusFailed + ": $e");
-    }
-  }
-  
-  /// 退出语音
-  void _exitAIReply() async {
-    try {
-      await _glassesPlugin.exitAIReply();
-      _showToast(AppStrings.exitedVoice);
-    } catch (e) {
-      _showToast(AppStrings.exitVoiceFailed + ": $e");
-    }
-  }
-  
   // ==================== 文件管理功能方法 ====================
   
   /// 查询文件数量
@@ -2808,44 +2304,9 @@ class _MyAppState extends State<MyApp> {
   //   }
   // }
   
-  /// 进入文件同步模式（开启 Wi-Fi）
-  /// 调用 SDK 的 setFileSyncModeEnter 方法
-  void _setFileSyncModeEnter() async {
-    try {
-      // 先检查电池电量，低电量时无法进入文件同步模式
-      if (_batteryLevel != AppStrings.unknown) {
-        // 从电池字符串中提取电量值（格式如 "50" 或 "50%"）
-        int batteryValue = int.tryParse(_batteryLevel.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-        if (batteryValue < 20) {
-          _showToast(AppStrings.lowBatteryWarning(_batteryLevel));
-          return;
-        }
-      }
-      
-      await _glassesPlugin.enableWifi(wifiType: 0);
-      _showToast(AppStrings.enteredFileSyncModeWifiOn);
-    } catch (e) {
-      _showToast(AppStrings.enterFileSyncModeFailed + ": $e");
-    }
-  }
-  
-  /// 退出文件同步模式（关闭 Wi-Fi）
-  /// 调用 SDK 的 setFileSyncModeExit 方法
-  void _setFileSyncModeExit() async {
-    try {
-      await _glassesPlugin.disableWifi();
-      _showToast(AppStrings.exitedFileSyncModeWifiOff);
-    } catch (e) {
-      _showToast(AppStrings.exitFileSyncModeFailed + ": $e");
-    }
-  }
-  
   //endregion
 
-  //region 同声传译方法
-
-  // ==================== 同声传译方法 ====================
-  
+  //region 同声传译方法  
   /// 设置同声传译状态
   /// 调用 SDK 的 setAudioCtrl 方法，传入用户选择的同声传译动作类型
   void _setSimultaneousInterpretation() async {
@@ -2972,33 +2433,6 @@ class _MyAppState extends State<MyApp> {
   //region 用户信息和设置方法
 
   // ==================== 用户信息和设置方法 ====================
-  
-  /// 设置用户信息
-  /// 调用 SDK 的 setUserInfo 方法
-  void _setUserInfo() async {
-    try {
-      // 示例用户信息
-      Map<String, dynamic> userInfo = {
-        'gender': false,      // 性别：false-男，true-女
-        'age': 25,            // 年龄
-        'height': 175,        // 身高(cm)
-        'weight': 70,         // 体重(kg)
-      };
-      
-      // bool success = await _glassesPlugin.setUserInfo(userInfo); // 已移除
-      _showToast("设置用户信息功能已移除");
-      /*
-      if (success) {
-        _showToast(AppStrings.userInfoSetSuccess);
-      } else {
-        _showToast(AppStrings.userInfoSetFailed);
-      }
-      */
-    } catch (e) {
-      _showToast(AppStrings.setUserInfoFailed + ": $e");
-    }
-  }
-  
   /// 设置闹钟
   /// 调用 SDK 的 setAlarm 方法
   void _setAlarm() async {
@@ -3167,53 +2601,7 @@ class _MyAppState extends State<MyApp> {
   
   //endregion
 
-  //region 直播功能方法
-
-  // ==================== 直播功能方法 ====================
-  
-  /// 进入直播模式
-  /// 调用 SDK 的 setLiveStreamEnter 方法
-  void _enterLiveStream() async {
-    try {
-      // 默认使用 AP 模式（0）
-      // bool success = await _glassesPlugin.enterLiveStream(wifiType: 0); // 已移除
-      _showToast("直播功能已移除");
-      /*
-      if (success) {
-        _showToast(AppStrings.enteredLiveModeAp);
-      } else {
-        _showToast(AppStrings.enterLiveModeFailed2);
-      }
-      */
-    } catch (e) {
-      _showToast(AppStrings.enterLiveModeFailed + ": $e");
-    }
-  }
-  
-  /// 退出直播模式
-  /// 调用 SDK 的 setLiveStreamExit 方法
-  void _exitLiveStream() async {
-    try {
-      // bool success = await _glassesPlugin.exitLiveStream(); // 已移除
-      _showToast("直播功能已移除");
-      /*
-      if (success) {
-        _showToast(AppStrings.exitedLiveMode);
-      } else {
-        _showToast(AppStrings.exitLiveModeFailed2);
-      }
-      */
-    } catch (e) {
-      _showToast(AppStrings.exitLiveModeFailed + ": $e");
-    }
-  }
-  
-  //endregion
-
-  //region 设备管理功能方法
-
-  // ==================== 设备管理功能方法 ====================
-  
+  //region 设备管理功能方法  
   /// 清除配对信息
   /// 调用 SDK 的 clearPairInfo 方法
   void _clearPairInfo() async {
@@ -3328,13 +2716,38 @@ class _MyAppState extends State<MyApp> {
   /// 设置语音唤醒
   /// 调用 SDK 的 setVoiceWakeup 方法
   void _setVoiceWakeup() async {
+    // SDK 定义：0=TypeOn(开启)，1=TypeOff(关闭)
+    if (_selectedVoiceWakeupAction == null) return;
+    bool enable = _selectedVoiceWakeupAction == 0;
+
+    // 开启语音唤醒会导致设备重启，需用户确认
+    if (enable) {
+      final navContext = _navigatorKey.currentContext;
+      if (navContext == null) return;
+      bool? confirmed = await showDialog<bool>(
+        context: navContext,
+        builder: (ctx) => AlertDialog(
+          title: Text(AppStrings.setVoiceWakeup),
+          content: const Text('开启语音唤醒会导致设备重启，是否继续？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(AppStrings.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(AppStrings.confirm),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
     try {
-      // SDK 定义：0=TypeOn(开启)，1=TypeOff(关闭)
-      bool enable = _selectedVoiceWakeupAction == 0;
-      
       await _glassesPlugin.setVoiceWakeup(enable: enable);
       _showToast(AppStrings.voiceWakeupSet(enable ? AppStrings.enabled : AppStrings.disabled));
-      
+
       // 设置完成后重新获取状态
       _getVoiceWakeupState();
     } catch (e) {
@@ -3367,374 +2780,6 @@ class _MyAppState extends State<MyApp> {
     });
     buffer.write('}');
     return buffer.toString();
-  }
-  
-  //endregion
-
-  //region 版本查询方法
-
-  /// 获取杰里版本号
-  Future<void> _getJLVersion() async {
-    setState(() {
-      _jlVersion = AppStrings.gettingStatusWithDots;
-    });
-    
-    try {
-      String version = await _glassesPlugin.getJLVersion()
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        throw TimeoutException(AppStrings.sdkTimeoutMessage, const Duration(seconds: 10));
-      });
-      
-      setState(() {
-        _actualJlVersion = version;
-        _jlVersion = AppStrings.jlVersion(version);
-      });
-      _showToast(AppStrings.jlVersion(version));
-    } on TimeoutException catch (e) {
-      setState(() {
-        _jlVersion = AppStrings.sdkNotReturned;
-      });
-      _showToast(AppStrings.getJlVersionTimeout + ": $e");
-    } catch (e) {
-      setState(() {
-        _jlVersion = AppStrings.getFailed;
-      });
-      _showToast(AppStrings.getJlVersionFailed + ": $e");
-    }
-  }
-  
-  /// 获取影像系统版本号
-  Future<void> _getQZVersion() async {
-    debugPrint('_getQZVersion: 开始获取影像系统版本');
-    setState(() {
-      _qzVersion = AppStrings.gettingStatusWithDots;
-    });
-    
-    try {
-      debugPrint('_getQZVersion: 调用 getQZVersion 方法');
-      String version = await _glassesPlugin.getQZVersion()
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        debugPrint('_getQZVersion: 超时');
-        throw TimeoutException(AppStrings.sdkTimeoutMessage, const Duration(seconds: 10));
-      });
-      
-      debugPrint('_getQZVersion: 获取到版本: $version');
-      
-      // 检查版本是否为空
-      if (version.isEmpty || version == 'null' || version == 'N/A') {
-        debugPrint('_getQZVersion: 版本为空或无效');
-        setState(() {
-          _actualQzVersion = version;
-          _qzVersion = AppStrings.deviceNotSupportedFeature2; // 显示"设备不支持"
-        });
-        _showToast(AppStrings.deviceNotSupportedFeature2);
-      } else {
-        setState(() {
-          _actualQzVersion = version;
-          _qzVersion = AppStrings.qzVersion(version);
-        });
-        _showToast(AppStrings.qzVersion(version));
-      }
-    } on TimeoutException catch (e) {
-      debugPrint('_getQZVersion: TimeoutException: $e');
-      setState(() {
-        _qzVersion = AppStrings.sdkNotReturned;
-      });
-      _showToast(AppStrings.getQzVersionTimeout + ": $e");
-    } catch (e) {
-      debugPrint('_getQZVersion: Exception: $e');
-      setState(() {
-        _qzVersion = AppStrings.getFailed;
-      });
-      _showToast(AppStrings.getQzVersionFailed + ": $e");
-    }
-  }
-  
-  /// 获取TP版本号
-  Future<void> _getTPVersion() async {
-    debugPrint('_getTPVersion: 开始获取TP版本');
-    setState(() {
-      _tpVersion = AppStrings.gettingStatusWithDots;
-    });
-    
-    try {
-      debugPrint('_getTPVersion: 调用 getTPVersion 方法');
-      String version = await _glassesPlugin.getTPVersion()
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        debugPrint('_getTPVersion: 超时');
-        throw TimeoutException(AppStrings.sdkTimeoutMessage, const Duration(seconds: 10));
-      });
-      
-      debugPrint('_getTPVersion: 获取到版本: $version');
-      
-      // 检查版本是否为空
-      if (version.isEmpty || version == 'null' || version == 'N/A') {
-        debugPrint('_getTPVersion: 版本为空或无效');
-        setState(() {
-          _tpVersion = AppStrings.deviceNotSupportedFeature2; // 显示"设备不支持"
-        });
-        _showToast(AppStrings.deviceNotSupportedFeature2);
-      } else {
-        setState(() {
-          _tpVersion = 'TP版本: $version';
-        });
-        _showToast('TP版本: $version');
-      }
-    } on TimeoutException catch (e) {
-      debugPrint('_getTPVersion: TimeoutException: $e');
-      setState(() {
-        _tpVersion = AppStrings.sdkNotReturned;
-      });
-      _showToast('获取TP版本超时: $e');
-    } catch (e) {
-      debugPrint('_getTPVersion: Exception: $e');
-      setState(() {
-        _tpVersion = AppStrings.getFailed;
-      });
-      _showToast('获取TP版本失败: $e');
-    }
-  }
-  
-  /// 获取Git哈希版本号
-  Future<void> _getGithashVersion() async {
-    setState(() {
-      _githashVersion = AppStrings.gettingStatusWithDots;
-    });
-    
-    try {
-      String version = await _glassesPlugin.getGithashVersion()
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        throw TimeoutException(AppStrings.sdkTimeoutMessage, const Duration(seconds: 10));
-      });
-      
-      setState(() {
-        _githashVersion = version;
-      });
-      _showToast(AppStrings.githashVersion(version));
-    } on TimeoutException catch (e) {
-      setState(() {
-        _githashVersion = AppStrings.sdkNotReturned;
-      });
-      _showToast(AppStrings.getGithashVersionTimeout + ": $e");
-    } catch (e) {
-      setState(() {
-        _githashVersion = AppStrings.getFailed;
-      });
-      _showToast(AppStrings.getGithashVersionFailed + ": $e");
-    }
-  }
-  //endregion
-
-  //region 辅助方法
-
-  void _showToast(String message) {
-    ToastUtil.showToast(message);
-  }
-
-  // ==================== OTA 升级功能方法 ====================
-  
-  /// 检查最新版本
-  void _checkLatestVersion() async {
-    setState(() {
-      _checkVersionResult = AppStrings.checkingLatestVersion;
-    });
-    
-    try {
-      // 先获取当前版本信息
-      await _getJLVersion();
-      await _getQZVersion();
-      
-      // 检查固件版本
-      if (_jlVersion == AppStrings.unknown || _jlVersion.isEmpty) {
-        setState(() {
-          _checkVersionResult = AppStrings.jlVersionMissing;
-        });
-        _showToast(AppStrings.jlVersionMissing);
-        return;
-      }
-      
-      // 检查影像系统版本
-      if (_qzVersion == AppStrings.unknown || _qzVersion.isEmpty) {
-        setState(() {
-          _checkVersionResult = AppStrings.qzVersionMissing;
-        });
-        _showToast(AppStrings.qzVersionMissing);
-        return;
-      }
-      
-      // 检查MAC地址
-      String mac = _cachedMacAddress ?? "00:00:00:00:00:00";
-      if (mac == "00:00:00:00:00:00" || mac.isEmpty) {
-        setState(() {
-          _checkVersionResult = AppStrings.connectDeviceForMac;
-        });
-        _showToast(AppStrings.connectDeviceForMac);
-        return;
-      }
-      
-      // _showToast(AppStrings.checkingLatestVersion);
-      
-      Map<String, dynamic> result = await _glassesPlugin.checkLatestVersion(
-        fw1Ver: _jlVersion,
-        fw2Ver: _qzVersion,
-        mac: mac,
-      );
-      
-      // 处理结构化的返回结果
-      String status = result['status'] ?? 'unknown';
-      String messageKey = result['message'] ?? 'unknown';
-      bool hasUpdate = result['hasUpdate'] ?? false;
-      
-      // 根据消息键获取国际化文本
-      String localizedMessage = _getLocalizedMessage(messageKey);
-      _showToast(localizedMessage);
-      
-      // 更新检查结果状态
-      setState(() {
-        _checkVersionResult = localizedMessage;
-      });
-      
-      // 如果有更新，显示更多详细信息
-      if (hasUpdate && result['latestVersion'] != null) {
-        Map<String, dynamic> latestVersion = result['latestVersion'];
-        String firmwareVer = latestVersion['firmwareVer'] ?? '';
-        String firmwareFile = latestVersion['firmwareFile'] ?? '';
-        int firmwareSize = latestVersion['firmwareSize'] ?? 0;
-        String firmwareMd5 = latestVersion['firmwareMd5'] ?? '';
-        
-        debugPrint('发现新版本: $firmwareVer');
-        debugPrint('固件文件: $firmwareFile');
-        debugPrint('固件大小: ${(firmwareSize / 1024 / 1024).toStringAsFixed(2)} MB');
-        debugPrint('MD5校验: $firmwareMd5');
-        
-        // 可以在这里添加更新提示对话框
-        _showUpdateDialog(latestVersion);
-      } else if (status == 'error' && result['error'] != null) {
-        Map<String, dynamic> error = result['error'];
-        debugPrint('检查版本错误: ${error['message']}');
-      }
-    } catch (e) {
-      setState(() {
-        _checkVersionResult = AppStrings.checkVersionFailed;
-      });
-      _showToast(AppStrings.checkVersionFailed + ": $e");
-    }
-  }
-  
-  /// 根据消息键获取国际化文本
-  String _getLocalizedMessage(String messageKey) {
-    switch (messageKey) {
-      case 'update_available':
-        return AppStrings.updateAvailable;
-      case 'already_latest':
-        return AppStrings.alreadyLatest;
-      case 'check_failed':
-        return AppStrings.checkFailed;
-      default:
-        return AppStrings.checkVersionFailed; // 默认错误消息
-    }
-  }
-
-  /// 显示更新提示对话框
-  void _showUpdateDialog(Map<String, dynamic> latestVersion) {
-    String firmwareVer = latestVersion['firmwareVer'] ?? '';
-    String firmwareFile = latestVersion['firmwareFile'] ?? '';
-    int type = latestVersion['type'] ?? 0;
-    int firmwareNum = latestVersion['firmwareNum'] ?? 0;
-    String firmwareMd5 = latestVersion['firmwareMd5'] ?? '';
-    int firmwareSize = latestVersion['firmwareSize'] ?? 0;
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('发现新版本 $firmwareVer'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('固件版本: $firmwareVer', style: TextStyle(fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
-                if (firmwareFile.isNotEmpty) ...[
-                  Text('固件文件: $firmwareFile'),
-                  SizedBox(height: 8),
-                ],
-                Text('固件类型: $type'),
-                SizedBox(height: 8),
-                Text('固件编号: $firmwareNum'),
-                SizedBox(height: 8),
-                if (firmwareSize > 0) ...[
-                  Text('固件大小: ${(firmwareSize / 1024 / 1024).toStringAsFixed(2)} MB'),
-                  SizedBox(height: 8),
-                ],
-                if (firmwareMd5.isNotEmpty) ...[
-                  Text('MD5校验:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  SelectableText(firmwareMd5, style: TextStyle(fontSize: 12, color: Colors.blue)),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('稍后更新'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // TODO: 启动OTA升级流程
-                _showToast('OTA升级功能开发中...');
-              },
-              child: Text('立即更新'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// 启动杰里OTA升级
-  void _startJLOTA() async {
-    _showToast(AppStrings.selectFirmwareFile);
-    
-    // TODO: 实现文件选择功能
-    // 这里暂时使用模拟路径
-    String firmwarePath = "/path/to/firmware.bin";
-    
-    try {
-      bool success = await _glassesPlugin.startJLOTA(path: firmwarePath);
-      if (success) {
-        _showToast(AppStrings.jlOtaStarted);
-        // TODO: 显示升级进度
-      } else {
-        _showToast(AppStrings.jlOtaStartFailed);
-      }
-    } catch (e) {
-      _showToast("${AppStrings.jlOtaStartFailed}: $e");
-    }
-  }
-  
-  /// 启动全志OTA升级
-  void _startQZOTA() async {
-    _showToast(AppStrings.qzOtaNotImplemented);
-  }
-  
-  /// 取消杰里OTA升级（仅适用于杰里芯片）
-  /// 注意：全志OTA升级无法取消
-  void _cancelOTA() async {
-    try {
-      _showToast(AppStrings.cancellingOta);
-      bool success = await _glassesPlugin.cancelJLOTA();
-      if (success) {
-        _showToast(AppStrings.otaCancelled);
-      } else {
-        _showToast(AppStrings.cancelOtaFailed);
-      }
-    } catch (e) {
-      _showToast("${AppStrings.cancelOtaFailed}: $e");
-    }
   }
   
   //endregion

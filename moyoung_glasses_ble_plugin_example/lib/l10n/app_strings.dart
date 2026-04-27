@@ -80,13 +80,13 @@ class AppStrings {
   /// OTA升级
   static String get otaUpgrade => isZh ? AppZh.otaUpgrade : AppEn.otaUpgrade;
   
-  /// 杰里OTA升级
+  /// 固件升级
   static String get jlOtaUpgrade => isZh ? AppZh.jlOtaUpgrade : AppEn.jlOtaUpgrade;
-  
-  /// 取消杰里OTA
+
+  /// 取消固件升级
   static String get cancelJlOta => isZh ? AppZh.cancelJlOta : AppEn.cancelJlOta;
-  
-  /// 全志OTA升级
+
+  /// 影像版本升级
   static String get qzOtaUpgrade => isZh ? AppZh.qzOtaUpgrade : AppEn.qzOtaUpgrade;
   
   /// 设置语音唤醒
@@ -133,13 +133,13 @@ class AppStrings {
   /// 取消OTA升级失败
   static String get cancelOtaFailed => isZh ? AppZh.cancelOtaFailed : AppEn.cancelOtaFailed;
   
-  /// 杰里OTA升级已启动
+  /// 固件升级已启动
   static String get jlOtaStarted => isZh ? AppZh.jlOtaStarted : AppEn.jlOtaStarted;
-  
-  /// 杰里OTA升级启动失败
+
+  /// 固件升级启动失败
   static String get jlOtaStartFailed => isZh ? AppZh.jlOtaStartFailed : AppEn.jlOtaStartFailed;
-  
-  /// 全志OTA功能暂未实现
+
+  /// 影像版本升级功能暂未实现
   static String get qzOtaNotImplemented => isZh ? AppZh.qzOtaNotImplemented : AppEn.qzOtaNotImplemented;
   
   // ==================== 功能模块 / Feature Modules ====================
@@ -776,10 +776,10 @@ class AppStrings {
   /// 信号强度
   static String get signalStrength => isZh ? AppZh.signalStrength : AppEn.signalStrength;
   
-  /// 杰理
+  /// 固件
   static String get jieLi => isZh ? AppZh.jieLi : AppEn.jieLi;
-  
-  /// 全志
+
+  /// 影像版本
   static String get quanZhi => isZh ? AppZh.quanZhi : AppEn.quanZhi;
   
   /// 已断开
@@ -1015,6 +1015,12 @@ class AppStrings {
   
   /// 版本信息
   static String get versionInfo => isZh ? AppZh.versionInfo : AppEn.versionInfo;
+  
+  /// 版本与升级
+  static String get versionAndOta => isZh ? AppZh.versionAndOta : AppEn.versionAndOta;
+  
+  /// 查看版本信息、检查更新、OTA升级
+  static String get versionAndOtaSubtitle => isZh ? AppZh.versionAndOtaSubtitle : AppEn.versionAndOtaSubtitle;
   
   /// 查询设备版本
   static String get queryDeviceVersion => isZh ? AppZh.queryDeviceVersion : AppEn.queryDeviceVersion;

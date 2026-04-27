@@ -1,5 +1,5 @@
 # MoYoung Glasses Flutter SDK API 列表 / API List
-# Version: 1.2.1
+# Version: 1.2.2
 
 ## 概述 / Overview
 
@@ -160,17 +160,23 @@ MoYoung Glasses Flutter SDK is a unified Flutter plugin that wraps the native An
 | 方法 / Method | 类型 / Type | 说明 / Description | 参数 / Parameters | 返回值 / Return |
 |-----|------|------|------|--------|
 | `checkLatestVersion` | Future<Map<String, dynamic>> | 检查最新版本 / Check latest version | String fw1Ver: 固件版本 / Firmware version<br>String fw2Ver: 影像系统版本 / Imaging System version<br>String mac: MAC地址 / MAC address | Map: 结构化检查结果 / Structured check result |
-| `startJLOTA` | Future<bool> | 开始杰里OTA升级 / Start JL OTA upgrade | String path: 固件文件路径 / Firmware file path | bool: 是否成功 / Whether successful |
-| `cancelJLOTA` | Future<bool> | 取消杰里OTA升级 / Cancel JL OTA upgrade | 无 / None | bool: 是否成功 / Whether successful |
-| `setOTAModeEnter` | Future<bool> | 进入全志OTA模式 / Enter QZ OTA mode | int wifiCtrl: Wi-Fi控制类型 / Wi-Fi control type | bool: 是否成功 / Whether successful |
-| `sendOTAPackageInfo` | Future<bool> | 发送OTA包信息 / Send OTA package info | Map<String, dynamic> otaPackageInfo: OTA包信息 / OTA package info | bool: 是否成功 / Whether successful |
-| `otaStateEveStm` | Stream<Map<String, dynamic>> | OTA升级状态事件流 / OTA state event stream | 无 / None | Stream: OTA状态 / Stream: OTA state |
+| `downloadFirmware` | Future<String> | 下载固件文件到本地 / Download firmware file to local | String url: 固件下载地址 / Firmware download URL | String: 本地文件路径 / Local file path |
+| `cancelDownload` | Future<bool> | 取消固件下载 / Cancel firmware download | 无 / None | bool: 是否成功 / Whether successful |
+| `startJLOTA` | Future<bool> | 开始固件升级（本地文件）/ Start firmware OTA upgrade (local file) | String path: 固件文件路径 / Firmware file path | bool: 是否成功 / Whether successful |
+| `cancelJLOTA` | Future<bool> | 取消固件升级 / Cancel firmware OTA upgrade | 无 / None | bool: 是否成功 / Whether successful |
+| `setOTAModeEnter` | Future<bool> | 进入影像版本升级模式 / Enter image version OTA mode | int wifiCtrl: Wi-Fi控制类型 / Wi-Fi control type | bool: 是否成功 / Whether successful |
+| `sendOTAPackageInfo` | Future<bool> | 发送OTA包信息 / Send OTA package info | int type: 包类型(0=固件,1=固件1) / Package type<br>String path: 固件文件本地路径 / Firmware file local path | bool: 是否成功 / Whether successful |
+| `startImageOTA` | Future<bool> | 影像版本一键OTA升级 / One-step image version OTA upgrade | String path: 影像固件文件本地路径 / Image firmware file local path | bool: 是否成功 / Whether successful |
+| `otaStateEveStm` | Stream<Map<String, dynamic>> | OTA升级状态事件流 / OTA state event stream | 无 / None | Stream: {type: int, progress: int}<br>type: 0=准备中, 1=升级中, 2=完成, 3=失败 |
 
 ### 19. 音频解码 / Audio Decoding
 
 | 方法 / Method | 类型 / Type | 说明 / Description | 参数 / Parameters | 返回值 / Return |
 |-----|------|------|------|--------|
 | `opusDecode` | Future<bool> | 解码 Opus 文件为 PCM / Decode Opus file to PCM | String pathOpus: Opus文件路径 / Opus file path<br>String pathPcm: PCM文件路径 / PCM file path | bool: 是否成功 / Whether successful |
+
+> **注意 / Note**: 下载媒体文件时，`.opus` 文件会自动转换为 `.pcm` 格式，无需手动调用 `opusDecode`。
+> During media file download, `.opus` files are automatically converted to `.pcm` format. No need to call `opusDecode` manually.
 
 ### 20. 测试方法 / Test Method
 
