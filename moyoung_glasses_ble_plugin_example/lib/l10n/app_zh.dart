@@ -373,6 +373,7 @@ class AppZh {
   static const String startAiReply = '开始AI回复';
   static const String completeAiReply = '完成AI回复';
   static const String interruptAiReply = '中断AI回复';
+  static const String setAIReplyStatusBtn = '发送';
   
   // ==================== 初始状态文本 / Initial Status Text ====================
   

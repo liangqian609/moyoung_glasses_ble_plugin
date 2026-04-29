@@ -372,6 +372,7 @@ class AppEn {
   static const String startAiReply = 'Start AI Reply';
   static const String completeAiReply = 'Complete AI Reply';
   static const String interruptAiReply = 'Interrupt AI Reply';
+  static const String setAIReplyStatusBtn = 'Send';
   
   // ==================== Initial Status Text ====================
   

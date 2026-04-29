@@ -76,6 +76,9 @@ class _MyAppState extends State<MyApp> {
   // 拍照模式选择
   int _selectedPhotoMode = 0;
   
+  // AI 回复状态选择
+  int _selectedAIReplyStatus = 0;
+  
   // 图片数据相关
   bool _isImageReceiving = false; // 是否正在接收图片数据
   Uint8List? _displayedImage; // 当前显示的图片数据
@@ -1224,6 +1227,72 @@ class _MyAppState extends State<MyApp> {
                     ],
                   ),
                 ),
+        const SizedBox(height: 8),
+        // AI 回复状态控制
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.purple.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.purple.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.psychology_alt, color: Colors.purple[600], size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    AppStrings.aiReplyStatusSet(''),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.purple[600]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButton<int>(
+                      value: _selectedAIReplyStatus,
+                      isExpanded: true,
+                      items: [
+                        DropdownMenuItem(value: 0, child: Text(AppStrings.startAiReply)),
+                        DropdownMenuItem(value: 1, child: Text(AppStrings.completeAiReply)),
+                        DropdownMenuItem(value: 2, child: Text(AppStrings.interruptAiReply)),
+                      ],
+                      onChanged: (int? value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedAIReplyStatus = value;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _isConnected ? () => _setAIReplyStatus(_selectedAIReplyStatus) : null,
+                    icon: const Icon(Icons.send, size: 18),
+                    label: Text(AppStrings.setAIReplyStatusBtn),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        _buildApiButton(
+          AppStrings.exitVoice,
+          Icons.voice_over_off,
+          _exitAIReply,
+          enabled: _isConnected,
+        ),
             ],
           ),
         ),
@@ -2240,6 +2309,47 @@ class _MyAppState extends State<MyApp> {
       _showToast(AppStrings.audioStopped);
     } catch (e) {
       _showToast(AppStrings.stopAudioFailed + ": $e");
+    }
+  }
+
+  /// 设置 AI 回复状态
+  /// status: 0-开始, 1-完成, 2-中断
+  void _setAIReplyStatus(int status) async {
+    try {
+      bool success = await _glassesPlugin.setAIReplyStatus(status: status);
+      String statusText = '';
+      switch (status) {
+        case 0:
+          statusText = AppStrings.startAiReply;
+          break;
+        case 1:
+          statusText = AppStrings.completeAiReply;
+          break;
+        case 2:
+          statusText = AppStrings.interruptAiReply;
+          break;
+      }
+      if (success) {
+        _showToast(AppStrings.aiReplyStatusSet(statusText));
+      } else {
+        _showToast(AppStrings.setAiReplyStatusFailed);
+      }
+    } catch (e) {
+      _showToast(AppStrings.setAiReplyStatusFailed + ": $e");
+    }
+  }
+
+  /// 退出 AI 对话
+  void _exitAIReply() async {
+    try {
+      bool success = await _glassesPlugin.exitAIReply();
+      if (success) {
+        _showToast(AppStrings.exitVoice);
+      } else {
+        _showToast(AppStrings.exitVoiceFailed);
+      }
+    } catch (e) {
+      _showToast(AppStrings.exitVoiceFailed + ": $e");
     }
   }
   

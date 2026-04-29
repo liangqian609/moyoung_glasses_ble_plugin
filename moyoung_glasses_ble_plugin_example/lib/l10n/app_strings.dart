@@ -1133,6 +1133,9 @@ class AppStrings {
   /// 中断AI回复
   static String get interruptAiReply => isZh ? AppZh.interruptAiReply : AppEn.interruptAiReply;
   
+  /// 发送（AI回复状态按钮）
+  static String get setAIReplyStatusBtn => isZh ? AppZh.setAIReplyStatusBtn : AppEn.setAIReplyStatusBtn;
+  
   // ==================== 初始状态文本 / Initial Status Text ====================
   
   /// 未知
