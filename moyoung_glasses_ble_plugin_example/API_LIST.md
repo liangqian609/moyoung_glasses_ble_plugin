@@ -1,5 +1,5 @@
 # MoYoung Glasses Flutter SDK API 列表 / API List
-# Version: 1.2.3
+# Version: 1.2.6
 
 ## 概述 / Overview
 
@@ -122,7 +122,7 @@ MoYoung Glasses Flutter SDK is a unified Flutter plugin that wraps the native An
 
 | 方法 / Method | 类型 / Type | 说明 / Description | 参数 / Parameters | 返回值 / Return |
 |-----|------|------|------|--------|
-| `setAudioRecord` | Future<bool> | 设置音频录制 / Set audio recording | int type: 录音类型 / Record type | bool: 是否成功 / Whether successful |
+| `setAudioRecord` | Future<bool> | 设置音频录制 / Set audio recording | int type: 录音类型 / Record type (0: start, 1: stop); int totalTime: 录音时长（秒）/ Recording duration in seconds (0: no limit, default: 0) | bool: 是否成功 / Whether successful |
 | `getAudioRecordState` | Future<Map<String, int>> | 获取音频录制状态 / Get audio recording state | 无 / None | Map: {type: 类型, totalTime: 总时长} / Map: {type: Type, totalTime: Total duration} |
 
 ### 14. 设备管理 / Device Management

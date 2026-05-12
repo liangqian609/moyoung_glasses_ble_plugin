@@ -259,6 +259,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
       });
 
       await _loadLocalDownloadedFiles();
+      // 下载后延迟查询，给 SDK 内部删除设备端文件留出时间
+      await Future.delayed(const Duration(seconds: 2));
       await _queryBleFileCount();
 
       if (failCount == 0) {

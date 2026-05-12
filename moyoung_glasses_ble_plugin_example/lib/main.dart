@@ -2464,7 +2464,7 @@ class _MyAppState extends State<MyApp> {
   /// 调用 SDK 的 setAudioRecord 方法，传入 Start
   void _startAudioRecord() async {
     try {
-      bool success = await _glassesPlugin.setAudioRecord(type: 0); // totalTime 在内部固定为 0
+      bool success = await _glassesPlugin.setAudioRecord(type: 0); // totalTime 默认 0（不限制）
       if (success) {
         _showToast(AppStrings.recordingStarted);
       } else {
@@ -2479,7 +2479,7 @@ class _MyAppState extends State<MyApp> {
   /// 调用 SDK 的 setAudioRecord 方法，传入 Stop
   void _stopAudioRecord() async {
     try {
-      bool success = await _glassesPlugin.setAudioRecord(type: 1); // totalTime 在内部固定为 0
+      bool success = await _glassesPlugin.setAudioRecord(type: 1); // 停止录音时 totalTime 无意义
       if (success) {
         _showToast(AppStrings.recordingStopped);
       } else {

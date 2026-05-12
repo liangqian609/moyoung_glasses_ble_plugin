@@ -403,7 +403,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.2.3"
+    version: "1.2.6"
   open_filex:
     dependency: "direct main"
     description:
