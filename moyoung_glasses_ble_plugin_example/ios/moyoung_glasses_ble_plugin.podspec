@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'moyoung_glasses_ble_plugin'
-  s.version          = '1.2.6'
+  s.version          = '1.2.7'
   s.summary          = 'A comprehensive Flutter plugin for MoYoung smart glasses.'
   s.description      = <<-DESC
 A comprehensive Flutter plugin for MoYoung smart glasses, providing 50+ features including:

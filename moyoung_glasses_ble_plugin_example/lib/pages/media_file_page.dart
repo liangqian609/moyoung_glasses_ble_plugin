@@ -17,7 +17,7 @@ import '../utils/toast_util.dart';
 /// 媒体文件管理页面
 class MediaFilePage extends StatefulWidget {
   final MoYoungGlassesBle glassesPlugin;
-  
+
   const MediaFilePage({
     Key? key,
     required this.glassesPlugin,
@@ -37,20 +37,21 @@ class _MediaFilePageState extends State<MediaFilePage> {
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   String _downloadPath = '';
+  String _activeDownloadDebugSessionId = '';
   List<File> _localDownloadedFiles = [];
   bool _isLocalFilesLoading = false;
-  
+
   // BLE 文件数量统计（来自 getFileCount）
   int _bleTotal = 0;
   int _blePicture = 0;
   int _bleVideo = 0;
   int _bleAudio = 0;
-  
+
   // Wi-Fi 连接状态
   String _wifiConnectionStatus = ''; // 使用国际化字符串动态显示
   bool _isWifiConnecting = false; // Wi-Fi 连接 loading 状态
   bool _pendingConnectAfterFileSync = false; // 等待 fileSync=true 后再连接设备Wi-Fi
-  
+
   // 流订阅
   StreamSubscription<Map<String, dynamic>>? _actionResultSubscription;
   StreamSubscription<Map<String, dynamic>>? _runningStatusSubscription;
@@ -73,7 +74,18 @@ class _MediaFilePageState extends State<MediaFilePage> {
     // media_kit 播放器初始化（加上 rtsp 协议白名单 + ready 回调设置 RTSP 选项）
     _player = Player(
       configuration: PlayerConfiguration(
-        protocolWhitelist: ['udp', 'rtp', 'tcp', 'tls', 'data', 'file', 'http', 'https', 'crypto', 'rtsp'],
+        protocolWhitelist: [
+          'udp',
+          'rtp',
+          'tcp',
+          'tls',
+          'data',
+          'file',
+          'http',
+          'https',
+          'crypto',
+          'rtsp'
+        ],
         ready: () {
           // mpv 初始化完成后才能设置属性
           final native = _player?.platform as NativePlayer?;
@@ -172,8 +184,10 @@ class _MediaFilePageState extends State<MediaFilePage> {
   void _closeWifiBeforeDispose() {
     _pendingConnectAfterFileSync = false;
 
-    final shouldCloseWifi =
-        _isWifiEnabled || _isFileSyncEnabled || _isLiveMode || _wifiConnectionStatus != 'disconnected';
+    final shouldCloseWifi = _isWifiEnabled ||
+        _isFileSyncEnabled ||
+        _isLiveMode ||
+        _wifiConnectionStatus != 'disconnected';
     if (!shouldCloseWifi) return;
 
     // 如果是直播模式，先停止直播再关闭 Wi-Fi
@@ -201,8 +215,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
     await _getDownloadDirectory();
     await _loadLocalDownloadedFiles();
     print('等待运行状态事件更新...');
-    _queryBleFileCount();
-    
+    _queryBleFileCount(reason: 'page_init');
+
     // 初始化 Wi-Fi 连接状态
     setState(() {
       _wifiConnectionStatus = 'disconnected';
@@ -232,10 +246,15 @@ class _MediaFilePageState extends State<MediaFilePage> {
     setState(() {
       _isDownloading = true;
       _downloadProgress = 0.0;
+      _activeDownloadDebugSessionId =
+          'ui-${DateTime.now().millisecondsSinceEpoch}';
     });
 
     try {
-      print('开始调用SDK下载，文件数: $estimatedFileCount');
+      print(
+          '开始调用SDK下载: uiSession=$_activeDownloadDebugSessionId, 预估文件数=$estimatedFileCount, '
+          '导入前计数 total=$_bleTotal, picture=$_blePicture, video=$_bleVideo, audio=$_bleAudio, '
+          'wifi=$_isWifiEnabled, fileSync=$_isFileSyncEnabled, path=$_downloadPath');
       final result = await widget.glassesPlugin
           .downloadMediaFilesToDir(targetDir: _downloadPath)
           .timeout(const Duration(seconds: 90), onTimeout: () {
@@ -248,9 +267,13 @@ class _MediaFilePageState extends State<MediaFilePage> {
         };
       });
 
-      final successCount = result['successCount'] is int ? result['successCount'] as int : 0;
-      final failCount = result['failCount'] is int ? result['failCount'] as int : (estimatedFileCount - successCount);
+      final successCount =
+          result['successCount'] is int ? result['successCount'] as int : 0;
+      final failCount = result['failCount'] is int
+          ? result['failCount'] as int
+          : (estimatedFileCount - successCount);
       final message = (result['message'] ?? '').toString();
+      final nativeSessionId = (result['debugSessionId'] ?? '').toString();
 
       if (!mounted) return;
       setState(() {
@@ -258,18 +281,24 @@ class _MediaFilePageState extends State<MediaFilePage> {
         _selectedFiles.clear();
       });
 
+      print(
+          '下载结果返回: uiSession=$_activeDownloadDebugSessionId, nativeSession=$nativeSessionId, '
+          'successCount=$successCount, failCount=$failCount, message=$message, rawResult=$result');
+
       await _loadLocalDownloadedFiles();
       // 下载后延迟查询，给 SDK 内部删除设备端文件留出时间
       await Future.delayed(const Duration(seconds: 2));
-      await _queryBleFileCount();
+      await _queryBleFileCount(reason: 'post_download_delay');
 
       if (failCount == 0) {
         ToastUtil.showToast(AppStrings.downloadCompletedCount(successCount));
       } else {
-        print('下载有失败项: successCount=$successCount, failCount=$failCount, message=$message');
-        ToastUtil.showToast(AppStrings.downloadCompletedWithFailure(successCount, failCount, message));
+        print(
+            '下载有失败项: successCount=$successCount, failCount=$failCount, message=$message');
+        ToastUtil.showToast(AppStrings.downloadCompletedWithFailure(
+            successCount, failCount, message));
       }
-      
+
       // 下载完成后重置 Wi-Fi 和文件同步状态
       setState(() {
         _isWifiEnabled = false;
@@ -277,12 +306,13 @@ class _MediaFilePageState extends State<MediaFilePage> {
       });
       print('下载完成，已重置 Wi-Fi 和文件同步状态');
     } catch (e) {
-      print('下载失败: $e');
+      print('下载失败: uiSession=$_activeDownloadDebugSessionId, error=$e');
       ToastUtil.showToast(AppStrings.downloadFailedWithError('$e'));
     } finally {
       if (mounted) {
         setState(() {
           _isDownloading = false;
+          _activeDownloadDebugSessionId = '';
         });
       }
     }
@@ -304,7 +334,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
   Future<void> _getDownloadDirectory() async {
     try {
       final appSupportDir = await getApplicationSupportDirectory();
-      final downloadDir = Directory(path.join(appSupportDir.path, 'moyoung_media_downloads'));
+      final downloadDir =
+          Directory(path.join(appSupportDir.path, 'moyoung_media_downloads'));
       if (!await downloadDir.exists()) {
         await downloadDir.create(recursive: true);
       }
@@ -340,11 +371,12 @@ class _MediaFilePageState extends State<MediaFilePage> {
     });
 
     // 监听操作结果
-    _actionResultSubscription = widget.glassesPlugin.actionResultEveStm.listen((data) async {
+    _actionResultSubscription =
+        widget.glassesPlugin.actionResultEveStm.listen((data) async {
       int code = data['code'] ?? -1;
       String msg = data['msg'] ?? '';
       String? action = data['action'];
-      
+
       // 处理 Wi-Fi 连接结果
       if (action == 'wifi_connection') {
         final status = (data['status'] ?? '').toString();
@@ -354,7 +386,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
           print('⚠️ 收到 wifi_connection 事件但缺少 status，忽略: $data');
           return;
         }
-        
+
         if (status == 'prompt') {
           if (_isWifiEnabled || _wifiConnectionStatus == 'connected') {
             print('ℹ️ 已连接成功，忽略后续 prompt 事件');
@@ -365,7 +397,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
           setState(() {
             _wifiConnectionStatus = 'connecting';
           });
-          ToastUtil.showToast(message.isNotEmpty ? message : AppStrings.wifiJoinPrompt);
+          ToastUtil.showToast(
+              message.isNotEmpty ? message : AppStrings.wifiJoinPrompt);
         } else if (status == 'configured') {
           if (_isWifiEnabled || _wifiConnectionStatus == 'connected') {
             print('ℹ️ 已连接成功，忽略后续 configured 事件');
@@ -376,7 +409,9 @@ class _MediaFilePageState extends State<MediaFilePage> {
             setState(() {
               _wifiConnectionStatus = 'connecting';
             });
-            ToastUtil.showToast(message.isNotEmpty ? message : AppStrings.wifiConfigAppliedPrompt);
+            ToastUtil.showToast(message.isNotEmpty
+                ? message
+                : AppStrings.wifiConfigAppliedPrompt);
           }
         } else if (status == 'success') {
           print('✅ 设备 Wi-Fi 连接成功');
@@ -386,10 +421,13 @@ class _MediaFilePageState extends State<MediaFilePage> {
             _isWifiConnecting = false; // 取消 loading
           });
 
-          _queryBleFileCount();
+          _queryBleFileCount(reason: 'wifi_connection_success');
 
-          ToastUtil.showToast(message.isNotEmpty ? message : AppStrings.deviceWifiConnected);
-        } else if (status == 'error' || status == 'failed' || status == 'disconnected') {
+          ToastUtil.showToast(
+              message.isNotEmpty ? message : AppStrings.deviceWifiConnected);
+        } else if (status == 'error' ||
+            status == 'failed' ||
+            status == 'disconnected') {
           print('❌ 设备 Wi-Fi 连接失败: $message');
           setState(() {
             _wifiConnectionStatus = 'disconnected';
@@ -408,6 +446,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
         final int current = (data['current'] as num?)?.toInt() ?? 0;
         final int total = (data['total'] as num?)?.toInt() ?? 0;
         final String stage = (data['stage'] ?? '').toString();
+        final String nativeSessionId =
+            (data['debugSessionId'] ?? '').toString();
 
         if (mounted && total > 0) {
           setState(() {
@@ -415,22 +455,23 @@ class _MediaFilePageState extends State<MediaFilePage> {
           });
         }
 
+        print(
+            '下载进度事件: uiSession=$_activeDownloadDebugSessionId, nativeSession=$nativeSessionId, '
+            'stage=$stage, current=$current, total=$total');
+
         if (stage == 'completed') {
-          print('媒体下载任务完成: current=$current, total=$total');
+          print(
+              '媒体下载任务完成: uiSession=$_activeDownloadDebugSessionId, nativeSession=$nativeSessionId, '
+              'current=$current, total=$total');
           if (mounted) {
             setState(() {
-              _isDownloading = false;
               _downloadProgress = 1.0;
-              // 下载完成后重置 Wi-Fi 和文件同步状态
-              _isWifiEnabled = false;
-              _isFileSyncEnabled = false;
             });
-            print('媒体下载完成，已重置 Wi-Fi 和文件同步状态');
           }
         }
         return;
       }
-      
+
       // 处理其他操作结果
       if (code == 0) {
         ToastUtil.showToast(AppStrings.wifiEnabled);
@@ -439,9 +480,10 @@ class _MediaFilePageState extends State<MediaFilePage> {
         ToastUtil.showToast('${AppStrings.operationFailed}: $msg');
       }
     });
-    
+
     // 监听运行状态（包含Wi-Fi状态）
-    _runningStatusSubscription = widget.glassesPlugin.runningStatusEveStm.listen((status) async {
+    _runningStatusSubscription =
+        widget.glassesPlugin.runningStatusEveStm.listen((status) async {
       print('MediaFilePage 收到运行状态事件: $status');
 
       // 检查直播模式状态
@@ -479,7 +521,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
       // 检查文件同步状态
       if (status.containsKey('fileSync')) {
         bool fileSync = status['fileSync'] ?? false;
-        print('MediaFilePage fileSync 状态: $fileSync, 当前 _isFileSyncEnabled: $_isFileSyncEnabled');
+        print(
+            'MediaFilePage fileSync 状态: $fileSync, 当前 _isFileSyncEnabled: $_isFileSyncEnabled');
         if (fileSync && !_isFileSyncEnabled) {
           print('MediaFilePage 更新 _isFileSyncEnabled 为 true');
           setState(() {
@@ -520,7 +563,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
     });
 
     // 监听媒体文件事件
-    _mediaFileSubscription = widget.glassesPlugin.mediaFileEveStm.listen((mediaFile) {
+    _mediaFileSubscription =
+        widget.glassesPlugin.mediaFileEveStm.listen((mediaFile) {
       if (mediaFile.fileName == '__count_changed__') return;
       setState(() {
         _files.removeWhere((item) => item.fileName == mediaFile.fileName);
@@ -535,12 +579,18 @@ class _MediaFilePageState extends State<MediaFilePage> {
     _mediaFileCountSubscription?.cancel();
     print('mediaFileCountEveStm: 开始监听');
 
-    _mediaFileCountSubscription = widget.glassesPlugin.mediaFileCountEveStm.listen((countMap) {
+    _mediaFileCountSubscription =
+        widget.glassesPlugin.mediaFileCountEveStm.listen((countMap) {
       if (!mounted) return;
 
       print('mediaFileCountEveStm: 收到事件原始数据=$countMap');
       final reason = (countMap['reason'] ?? '').toString();
-      _applyBleFileCount(countMap, source: reason.isNotEmpty ? 'event:$reason' : 'event');
+      final sessionId = (countMap['debugSessionId'] ?? '').toString();
+      print(
+          'mediaFileCountEveStm: 会话关联 uiSession=$_activeDownloadDebugSessionId, nativeSession=$sessionId, '
+          'isDownloading=$_isDownloading, isFileSyncEnabled=$_isFileSyncEnabled');
+      _applyBleFileCount(countMap,
+          source: reason.isNotEmpty ? 'event:$reason' : 'event');
 
       if (reason == 'change' && _isFileSyncEnabled) {
         ToastUtil.showToast(AppStrings.deviceHasNewFiles);
@@ -552,7 +602,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
     });
   }
 
-  void _applyBleFileCount(Map<String, dynamic> countMap, {required String source}) {
+  void _applyBleFileCount(Map<String, dynamic> countMap,
+      {required String source}) {
     if (!mounted) return;
     setState(() {
       _bleTotal = (countMap['total'] as num?)?.toInt() ?? 0;
@@ -560,15 +611,21 @@ class _MediaFilePageState extends State<MediaFilePage> {
       _bleVideo = (countMap['video'] as num?)?.toInt() ?? 0;
       _bleAudio = (countMap['audio'] as num?)?.toInt() ?? 0;
     });
-    print('BLE文件数量($source): total=$_bleTotal, picture=$_blePicture, video=$_bleVideo, audio=$_bleAudio');
+    print(
+        'BLE文件数量($source): total=$_bleTotal, picture=$_blePicture, video=$_bleVideo, audio=$_bleAudio');
   }
 
   /// 通过 BLE 查询设备文件数量（total/picture/video/audio）
-  Future<void> _queryBleFileCount() async {
+  Future<void> _queryBleFileCount({String reason = 'manual'}) async {
     try {
+      print(
+          '查询BLE文件数量: reason=$reason, uiSession=$_activeDownloadDebugSessionId, '
+          '当前计数 total=$_bleTotal, picture=$_blePicture, video=$_bleVideo, audio=$_bleAudio, '
+          'isDownloading=$_isDownloading, isFileSyncEnabled=$_isFileSyncEnabled');
       await widget.glassesPlugin.getFileCount();
     } catch (e) {
-      print('查询BLE文件数量失败: $e');
+      print(
+          '查询BLE文件数量失败: reason=$reason, uiSession=$_activeDownloadDebugSessionId, error=$e');
     }
   }
 
@@ -622,7 +679,6 @@ class _MediaFilePageState extends State<MediaFilePage> {
               ],
             ),
             const SizedBox(height: 12),
-
             Row(
               children: [
                 Expanded(
@@ -645,7 +701,6 @@ class _MediaFilePageState extends State<MediaFilePage> {
               ],
             ),
             const SizedBox(height: 12),
-            
             Row(
               children: [
                 Expanded(
@@ -679,7 +734,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
                     label: Text(AppStrings.disableWifi),
                   ),
                 ),
-                              ],
+              ],
             ),
           ],
         ),
@@ -728,7 +783,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 6),
                               visualDensity: VisualDensity.compact,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               textStyle: const TextStyle(fontSize: 12),
@@ -740,9 +796,11 @@ class _MediaFilePageState extends State<MediaFilePage> {
                             icon: Icon(Icons.download, size: 14),
                             label: Text(AppStrings.downloadFiles),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: canDownload ? Colors.green : Colors.grey,
+                              backgroundColor:
+                                  canDownload ? Colors.green : Colors.grey,
                               foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 6),
                               visualDensity: VisualDensity.compact,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               textStyle: const TextStyle(fontSize: 12),
@@ -760,13 +818,19 @@ class _MediaFilePageState extends State<MediaFilePage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildStatItem(AppStrings.image, '$_blePicture', Icons.image, color: Colors.green[700]!),
+                    child: _buildStatItem(
+                        AppStrings.image, '$_blePicture', Icons.image,
+                        color: Colors.green[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem(AppStrings.video, '$_bleVideo', Icons.videocam, color: Colors.orange[700]!),
+                    child: _buildStatItem(
+                        AppStrings.video, '$_bleVideo', Icons.videocam,
+                        color: Colors.orange[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem(AppStrings.audio, '$_bleAudio', Icons.audiotrack, color: Colors.purple[700]!),
+                    child: _buildStatItem(
+                        AppStrings.audio, '$_bleAudio', Icons.audiotrack,
+                        color: Colors.purple[700]!),
                   ),
                 ],
               ),
@@ -774,13 +838,17 @@ class _MediaFilePageState extends State<MediaFilePage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildStatItem(AppStrings.image, '0', Icons.image, color: Colors.green[700]!),
+                    child: _buildStatItem(AppStrings.image, '0', Icons.image,
+                        color: Colors.green[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem(AppStrings.video, '0', Icons.videocam, color: Colors.orange[700]!),
+                    child: _buildStatItem(AppStrings.video, '0', Icons.videocam,
+                        color: Colors.orange[700]!),
                   ),
                   Expanded(
-                    child: _buildStatItem(AppStrings.audio, '0', Icons.audiotrack, color: Colors.purple[700]!),
+                    child: _buildStatItem(
+                        AppStrings.audio, '0', Icons.audiotrack,
+                        color: Colors.purple[700]!),
                   ),
                 ],
               ),
@@ -792,7 +860,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
   }
 
   /// 构建统计项
-  Widget _buildStatItem(String label, String value, IconData icon, {Color? color}) {
+  Widget _buildStatItem(String label, String value, IconData icon,
+      {Color? color}) {
     final iconColor = color ?? Colors.grey[600]!;
     final valueColor = color ?? Colors.blue[700]!;
     return Column(
@@ -830,7 +899,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
             // 标题行
             Row(
               children: [
-                Icon(Icons.videocam, color: _isLiveActive ? Colors.red : Colors.grey),
+                Icon(Icons.videocam,
+                    color: _isLiveActive ? Colors.red : Colors.grey),
                 SizedBox(width: 8),
                 Text(
                   AppStrings.liveView,
@@ -841,11 +911,15 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _isLiveActive ? Colors.red.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    color: _isLiveActive
+                        ? Colors.red.withOpacity(0.1)
+                        : Colors.grey.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _isLiveActive ? AppStrings.liveActive : AppStrings.liveInactive,
+                    _isLiveActive
+                        ? AppStrings.liveActive
+                        : AppStrings.liveInactive,
                     style: TextStyle(
                       fontSize: 12,
                       color: _isLiveActive ? Colors.red : Colors.grey,
@@ -860,7 +934,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: (_isLiveActive || !_isWifiEnabled) ? null : _startLive,
+                    onPressed:
+                        (_isLiveActive || !_isWifiEnabled) ? null : _startLive,
                     icon: Icon(Icons.play_circle),
                     label: Text(AppStrings.startLive),
                     style: ElevatedButton.styleFrom(
@@ -992,7 +1067,9 @@ class _MediaFilePageState extends State<MediaFilePage> {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: _localDownloadedFiles.isEmpty ? null : _deleteAllLocalFiles,
+                  onPressed: _localDownloadedFiles.isEmpty
+                      ? null
+                      : _deleteAllLocalFiles,
                   icon: const Icon(Icons.delete_sweep, size: 16),
                   label: Text(AppStrings.deleteAll),
                   style: ElevatedButton.styleFrom(
@@ -1007,7 +1084,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.blue.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(10),
@@ -1015,11 +1093,14 @@ class _MediaFilePageState extends State<MediaFilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(AppStrings.localFiles, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text(AppStrings.localFiles,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54)),
                         const SizedBox(height: 2),
                         Text(
                           '${_localDownloadedFiles.length} ${AppStrings.files}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -1028,7 +1109,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(10),
@@ -1036,11 +1118,14 @@ class _MediaFilePageState extends State<MediaFilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(AppStrings.totalDirectorySize, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text(AppStrings.totalDirectorySize,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54)),
                         const SizedBox(height: 2),
                         Text(
                           _formatFileSize(totalSizeBytes),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -1050,7 +1135,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
             ),
             const SizedBox(height: 12),
             if (_isLocalFilesLoading)
-              const Center(child: Padding(
+              const Center(
+                  child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: CircularProgressIndicator(),
               ))
@@ -1075,7 +1161,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
                     final file = _localDownloadedFiles[index];
                     final stat = file.statSync();
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey[300]!),
                         borderRadius: BorderRadius.circular(10),
@@ -1090,7 +1177,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
                               color: Colors.blueGrey.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(_localFileIcon(file.path), color: Colors.blueGrey, size: 18),
+                            child: Icon(_localFileIcon(file.path),
+                                color: Colors.blueGrey, size: 18),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -1101,12 +1189,15 @@ class _MediaFilePageState extends State<MediaFilePage> {
                                   path.basename(file.path),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   '${_formatFileSize(stat.size)} · ${_formatDateTime(stat.modified)}',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.grey[600]),
                                 ),
                               ],
                             ),
@@ -1127,6 +1218,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
       ),
     );
   }
+
   /// 构建文件列表
   Widget _buildFileList() {
     return GridView.builder(
@@ -1145,7 +1237,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
   /// 构建文件网格项
   Widget _buildFileGridItem(MediaFileBean file) {
     bool isSelected = _selectedFiles.contains(file.fileName);
-    
+
     return Card(
       child: InkWell(
         onTap: () => _toggleFileSelection(file.fileName),
@@ -1160,7 +1252,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(8)),
                     ),
                     child: _buildFileIcon(file.fileType),
                   ),
@@ -1209,7 +1302,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
   Widget _buildFileIcon(int fileType) {
     IconData icon;
     Color color;
-    
+
     switch (fileType) {
       case 0: // 图片
         icon = Icons.image;
@@ -1227,7 +1320,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
         icon = Icons.insert_drive_file;
         color = Colors.grey;
     }
-    
+
     return Icon(icon, color: color, size: 24);
   }
 
@@ -1242,7 +1335,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
             : Container(
                 key: const ValueKey('download-progress-idle'),
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.grey.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
@@ -1267,7 +1361,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
         children: [
           LinearProgressIndicator(value: _downloadProgress),
           const SizedBox(height: 8),
-          Text('${AppStrings.downloading}: ${(_downloadProgress * 100).toInt()}%'),
+          Text(
+              '${AppStrings.downloading}: ${(_downloadProgress * 100).toInt()}%'),
         ],
       ),
     );
@@ -1289,8 +1384,10 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(AppStrings.wifiFileSync, style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text(AppStrings.enableFileTransfer, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(AppStrings.wifiFileSync,
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(AppStrings.enableFileTransfer,
+                        style: TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -1305,8 +1402,10 @@ class _MediaFilePageState extends State<MediaFilePage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(AppStrings.liveView, style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text(AppStrings.startLive, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(AppStrings.liveView,
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(AppStrings.startLive,
+                        style: TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ],
@@ -1457,7 +1556,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
   /// 获取媒体文件列表
   Future<void> _getMediaFileList() async {
     print('=== 刷新文件统计 ===');
-    await _queryBleFileCount();
+    await _queryBleFileCount(reason: 'manual_refresh');
   }
 
   /// 切换文件选择
@@ -1484,10 +1583,7 @@ class _MediaFilePageState extends State<MediaFilePage> {
         await directory.create(recursive: true);
       }
 
-      final files = directory
-          .listSync()
-          .whereType<File>()
-          .toList()
+      final files = directory.listSync().whereType<File>().toList()
         ..sort((a, b) {
           try {
             return b.statSync().modified.compareTo(a.statSync().modified);
@@ -1531,7 +1627,6 @@ class _MediaFilePageState extends State<MediaFilePage> {
     }
   }
 
-
   Future<void> _deleteAllLocalFiles() async {
     final confirmed = await _showDeleteAllLocalFilesConfirmDialog();
     if (!confirmed) return;
@@ -1551,7 +1646,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
         return;
       }
 
-      final entities = await directory.list(recursive: false, followLinks: false).toList();
+      final entities =
+          await directory.list(recursive: false, followLinks: false).toList();
       int deletedCount = 0;
       for (final entity in entities) {
         if (entity is File) {
@@ -1571,7 +1667,6 @@ class _MediaFilePageState extends State<MediaFilePage> {
       ToastUtil.showToast(AppStrings.deleteAllFailedWithError('$e'));
     }
   }
-
 
   Future<bool> _showDeleteAllLocalFilesConfirmDialog() async {
     final result = await showDialog<bool>(
