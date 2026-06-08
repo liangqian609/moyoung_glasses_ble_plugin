@@ -73,9 +73,24 @@ class AppStrings {
   
   /// 开启Wi-Fi
   static String get enableWifi => isZh ? AppZh.enableWifi : AppEn.enableWifi;
-  
+
   /// 关闭Wi-Fi
   static String get disableWifi => isZh ? AppZh.disableWifi : AppEn.disableWifi;
+
+  /// WiFi名称
+  static String get wifiName => isZh ? AppZh.wifiName : AppEn.wifiName;
+
+  /// WiFi密码
+  static String get wifiPassword => isZh ? AppZh.wifiPassword : AppEn.wifiPassword;
+
+  /// 请输入WiFi名称
+  static String get wifiNameHint => isZh ? AppZh.wifiNameHint : AppEn.wifiNameHint;
+
+  /// 请输入WiFi密码
+  static String get wifiPasswordHint => isZh ? AppZh.wifiPasswordHint : AppEn.wifiPasswordHint;
+
+  /// WiFi设置
+  static String get wifiSettings => isZh ? AppZh.wifiSettings : AppEn.wifiSettings;
   
   /// OTA升级
   static String get otaUpgrade => isZh ? AppZh.otaUpgrade : AppEn.otaUpgrade;

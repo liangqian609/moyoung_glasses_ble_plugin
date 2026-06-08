@@ -11,6 +11,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:media_kit/src/player/native/player/real.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_strings.dart';
 import '../utils/toast_util.dart';
 
@@ -51,6 +52,8 @@ class _MediaFilePageState extends State<MediaFilePage> {
   String _wifiConnectionStatus = ''; // 使用国际化字符串动态显示
   bool _isWifiConnecting = false; // Wi-Fi 连接 loading 状态
   bool _pendingConnectAfterFileSync = false; // 等待 fileSync=true 后再连接设备Wi-Fi
+  String? _targetSsid;
+  String? _targetPassword;
 
   // 流订阅
   StreamSubscription<Map<String, dynamic>>? _actionResultSubscription;
@@ -210,6 +213,16 @@ class _MediaFilePageState extends State<MediaFilePage> {
     // 先订阅事件，避免初始化耗时阶段错过原生早期事件
     _subscribeToEvents();
     _subscribeMediaFileChange();
+
+    // 预防性调用：如果设备之前处于直播模式且由于App异常退出未正常停止，调用 stopLive 进行状态重置
+    widget.glassesPlugin.stopLive().catchError((e) {
+      print('MediaFilePage initState: 预防性停止直播失败: $e');
+    });
+
+    // 加载用户自定义的 Wi-Fi 设置
+    final prefs = await SharedPreferences.getInstance();
+    _targetSsid = prefs.getString('custom_wifi_ssid') ?? 'Glass-01';
+    _targetPassword = prefs.getString('custom_wifi_password') ?? '12345678';
 
     await _checkPermissions();
     await _getDownloadDirectory();
@@ -499,7 +512,11 @@ class _MediaFilePageState extends State<MediaFilePage> {
               print('页面已销毁或已退出直播模式，跳过自动连接');
               return;
             }
-            await widget.glassesPlugin.connectToDeviceWifi();
+            if (_targetSsid != null && _targetPassword != null) {
+              await widget.glassesPlugin.connectToDeviceWifiWithCredentials(_targetSsid!, _targetPassword!);
+            } else {
+              await widget.glassesPlugin.connectToDeviceWifi();
+            }
           } catch (e) {
             print('自动连接设备 Wi-Fi 失败: $e');
             if (!mounted) return;
@@ -541,7 +558,11 @@ class _MediaFilePageState extends State<MediaFilePage> {
               print('页面已销毁或已退出文件同步，跳过自动连接');
               return;
             }
-            await widget.glassesPlugin.connectToDeviceWifi();
+            if (_targetSsid != null && _targetPassword != null) {
+              await widget.glassesPlugin.connectToDeviceWifiWithCredentials(_targetSsid!, _targetPassword!);
+            } else {
+              await widget.glassesPlugin.connectToDeviceWifi();
+            }
           } catch (e) {
             print('自动连接设备 Wi-Fi 失败: $e');
             if (!mounted) return;
@@ -735,6 +756,18 @@ class _MediaFilePageState extends State<MediaFilePage> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _showWifiSettingsDialog,
+                icon: const Icon(Icons.settings, size: 18),
+                label: Text('配置设备 Wi-Fi 名称和密码'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue[700],
+                ),
+              ),
             ),
           ],
         ),
@@ -1426,10 +1459,12 @@ class _MediaFilePageState extends State<MediaFilePage> {
       _pendingConnectAfterFileSync = true;
 
       await widget.glassesPlugin.enableWifi(
-        wifiType: wifiType, // 1-文件同步, 3-直播
+        wifiType: wifiType,
+        ssid: _targetSsid,
+        password: _targetPassword,
       );
       ToastUtil.showToast(AppStrings.wifiEnabledWaitingAutoConnect);
-      print('Wi-Fi 开启成功(wifiType=$wifiType)，等待连接设备 Wi-Fi');
+      print('Wi-Fi 开启成功(wifiType=$wifiType, ssid=${_targetSsid ?? "默认"}, password=${_targetPassword != null ? "***" : "默认"})，等待连接设备 Wi-Fi');
     } catch (e) {
       print('开启 Wi-Fi 失败: $e');
       ToastUtil.showToast('${AppStrings.enableWifiFailed}: $e');
@@ -1457,6 +1492,85 @@ class _MediaFilePageState extends State<MediaFilePage> {
     } catch (e) {
       ToastUtil.showToast('${AppStrings.disableWifiFailed}: $e');
     }
+  }
+
+  /// 设置 Wi-Fi 热点名称和密码
+  Future<void> _showWifiSettingsDialog() async {
+    final ssidController = TextEditingController(text: _targetSsid);
+    final passwordController = TextEditingController(text: _targetPassword);
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(AppStrings.wifiName), // or custom title
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: ssidController,
+                  decoration: InputDecoration(
+                    labelText: AppStrings.wifiName,
+                    hintText: AppStrings.wifiNameHint,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'SSID 不能为空';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 12),
+                TextFormField(
+                  controller: passwordController,
+                  decoration: InputDecoration(
+                    labelText: AppStrings.wifiPassword,
+                    hintText: AppStrings.wifiPasswordHint,
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.trim().length < 8) {
+                      return '密码长度不能少于 8 位';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppStrings.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  final newSsid = ssidController.text.trim();
+                  final newPassword = passwordController.text.trim();
+                  
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('custom_wifi_ssid', newSsid);
+                  await prefs.setString('custom_wifi_password', newPassword);
+
+                  setState(() {
+                    _targetSsid = newSsid;
+                    _targetPassword = newPassword;
+                  });
+                  
+                  Navigator.pop(ctx);
+                  ToastUtil.showToast('Wi-Fi 设置已保存');
+                }
+              },
+              child: Text(AppStrings.confirm),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   /// 开启直播（Wi-Fi 已连接后由用户主动触发）

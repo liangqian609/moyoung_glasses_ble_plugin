@@ -19,6 +19,11 @@ class AppEn {
   static const String stopVideo = 'Stop Video';
   static const String enableWifi = 'Enable Wi-Fi';
   static const String disableWifi = 'Disable Wi-Fi';
+  static const String wifiName = 'Wi-Fi Name';
+  static const String wifiPassword = 'Wi-Fi Password';
+  static const String wifiNameHint = 'Enter Wi-Fi name';
+  static const String wifiPasswordHint = 'Enter Wi-Fi password';
+  static const String wifiSettings = 'Wi-Fi Settings';
   static const String otaUpgrade = 'OTA Upgrade';
   static const String jlOtaUpgrade = 'Firmware Upgrade';
   static const String cancelJlOta = 'Cancel Firmware Upgrade';

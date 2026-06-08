@@ -18,6 +18,11 @@ class AppZh {
   static const String stopVideo = '停止录像';
   static const String enableWifi = '开启Wi-Fi';
   static const String disableWifi = '关闭Wi-Fi';
+  static const String wifiName = 'WiFi名称';
+  static const String wifiPassword = 'WiFi密码';
+  static const String wifiNameHint = '请输入WiFi名称';
+  static const String wifiPasswordHint = '请输入WiFi密码';
+  static const String wifiSettings = 'WiFi 设置';
   static const String otaUpgrade = 'OTA升级';
   static const String jlOtaUpgrade = '固件升级';
   static const String cancelJlOta = '取消固件升级';
