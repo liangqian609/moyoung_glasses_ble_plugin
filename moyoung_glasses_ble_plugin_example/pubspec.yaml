@@ -24,6 +24,7 @@ dependencies:
   permission_handler: any
   path_provider: ^2.0.10
   path: ^1.8.2
+  archive: ^4.0.9
 #  phone_state: ^1.0.2
     # HTTP network request library
   dio: ^4.0.6

@@ -2,7 +2,7 @@
 # See https://dart.dev/tools/pub/glossary#lockfile
 packages:
   archive:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: archive
       sha256: a96e8b390886ee8abb49b7bd3ac8df6f451c621619f52a26e815fdcf568959ff
@@ -403,7 +403,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.2.8"
+    version: "1.3.3"
   open_filex:
     dependency: "direct main"
     description:

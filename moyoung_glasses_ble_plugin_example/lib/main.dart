@@ -21,6 +21,9 @@ import 'pages/media_file_page.dart';
 import 'pages/version_ota_page.dart';
 import 'package:media_kit/media_kit.dart';
 import 'dual_plugin_example.dart';
+import 'utils/sdk_log_file_manager.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 //region 数据类定义
 
@@ -40,7 +43,9 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  static const String _sdkLogWriteEnabledKey = 'sdk_log_write_enabled';
   final MoYoungGlassesBle _glassesPlugin = MoYoungGlassesBle();
+  final SdkLogFileManager _sdkLogFileManager = SdkLogFileManager();
   final _streamSubscriptions = <StreamSubscription<dynamic>>[];
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   
@@ -91,6 +96,9 @@ class _MyAppState extends State<MyApp> {
   String _voiceWakeupStatus = AppStrings.clickToGet;   // 语音唤醒状态
   String _runningStatus = AppStrings.clickToGet;       // 运行状态
   String _sdkLogStatus = AppStrings.waitingSdkLog;      // SDK日志状态
+  bool _isSdkLogWriteEnabled = false;                   // 是否写入SDK日志文件
+  bool _isExportingSdkLogs = false;                     // 是否正在导出SDK日志
+  int _sdkLogFileCount = 0;                             // 已生成的SDK日志文件数量
   String? _cachedMacAddress;               // 缓存的 MAC 地址
   String? _cachedDeviceName;               // 缓存的设备名称
   
@@ -125,6 +133,8 @@ class _MyAppState extends State<MyApp> {
       }
       
       _loadLocale();
+      _loadSdkLogWriteEnabled();
+      _refreshSdkLogFileCount();
       _initializeGlassesPlugin();
       _subscribeToStreams();
       _checkInitialBluetoothState();
@@ -270,6 +280,91 @@ class _MyAppState extends State<MyApp> {
     });
     if (mac != null && name != null) {
       print(AppStrings.loadCachedDevice(name!, mac!));
+    }
+  }
+
+  Future<void> _loadSdkLogWriteEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      setState(() {
+        _isSdkLogWriteEnabled = prefs.getBool(_sdkLogWriteEnabledKey) ?? false;
+      });
+    } catch (e) {
+      debugPrint('读取 SDK 日志写入开关失败: $e');
+    }
+  }
+
+  Future<void> _setSdkLogWriteEnabled(bool value) async {
+    setState(() {
+      _isSdkLogWriteEnabled = value;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_sdkLogWriteEnabledKey, value);
+    } catch (e) {
+      debugPrint('保存 SDK 日志写入开关失败: $e');
+    }
+  }
+
+  Future<void> _refreshSdkLogFileCount() async {
+    try {
+      final int count = await _sdkLogFileManager.logFileCount();
+      if (!mounted) return;
+      setState(() {
+        _sdkLogFileCount = count;
+      });
+    } catch (e) {
+      debugPrint('刷新 SDK 日志文件数量失败: $e');
+    }
+  }
+
+  Future<void> _appendSdkLogToFile(String log) async {
+    if (!_isSdkLogWriteEnabled) {
+      return;
+    }
+
+    try {
+      await _sdkLogFileManager.appendLog(log);
+      await _refreshSdkLogFileCount();
+    } catch (e) {
+      debugPrint('写入 SDK 日志文件失败: $e');
+      if (mounted) {
+        _showToast(AppStrings.sdkLogWriteFailed('$e'));
+      }
+    }
+  }
+
+  Future<void> _exportSdkLogs() async {
+    if (_isExportingSdkLogs) {
+      return;
+    }
+
+    setState(() {
+      _isExportingSdkLogs = true;
+    });
+
+    try {
+      final file = await _sdkLogFileManager.exportAllLogsAsZip();
+      if (file == null) {
+        _showToast(AppStrings.sdkLogNoFilesToExport);
+        return;
+      }
+
+      await _refreshSdkLogFileCount();
+      final result = await OpenFilex.open(file.path);
+      if (result.type != ResultType.done) {
+        _showToast(AppStrings.sdkLogExported(file.path));
+      }
+    } catch (e) {
+      debugPrint('导出 SDK 日志失败: $e');
+      _showToast(AppStrings.sdkLogExportFailed('$e'));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isExportingSdkLogs = false;
+        });
+      }
     }
   }
   
@@ -533,6 +628,7 @@ class _MyAppState extends State<MyApp> {
       _glassesPlugin.sdkLogEveStm.listen(
         (String log) {
           debugPrint('Received log message: $log');
+          _appendSdkLogToFile(log);
           
           // 更新状态显示，只显示最新的日志
           setState(() {
@@ -1506,6 +1602,25 @@ class _MyAppState extends State<MyApp> {
       title: AppStrings.sdkLog,
       icon: Icons.bug_report,
       children: [
+        SwitchListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          title: Text(
+            AppStrings.sdkLogWriteToFile,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          subtitle: Text(
+            _isSdkLogWriteEnabled
+                ? AppStrings.sdkLogWriteEnabledDesc
+                : AppStrings.sdkLogWriteDisabledDesc,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+          value: _isSdkLogWriteEnabled,
+          onChanged: (bool value) {
+            _setSdkLogWriteEnabled(value);
+            _showToast(value ? AppStrings.sdkLogWriteEnabled : AppStrings.sdkLogWriteDisabled);
+          },
+          secondary: Icon(Icons.save_alt, color: Colors.blue[600]),
+        ),
         // SDK日志显示
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1546,6 +1661,13 @@ class _MyAppState extends State<MyApp> {
               ),
             ],
           ),
+        ),
+        _buildApiButton(
+          _isExportingSdkLogs ? AppStrings.sdkLogExporting : AppStrings.sdkLogExportZip,
+          Icons.archive,
+          _exportSdkLogs,
+          subtitle: AppStrings.sdkLogExportSubtitle(_sdkLogFileCount),
+          enabled: !_isExportingSdkLogs,
         ),
       ],
     );
@@ -2031,12 +2153,7 @@ class _MyAppState extends State<MyApp> {
   }
   
   void _syncTime() async {
-    try {
-      await _glassesPlugin.syncTime();
-      _showToast(AppStrings.timeSyncSuccess);
-    } catch (e) {
-      _showToast(AppStrings.timeSyncFailed + ": $e");
-    }
+    _showToast(AppStrings.timeAlreadySyncedOnConnect);
   }
   
   void _queryDeviceVersion() async {

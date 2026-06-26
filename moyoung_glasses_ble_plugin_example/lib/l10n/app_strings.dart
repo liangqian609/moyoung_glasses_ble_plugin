@@ -208,6 +208,9 @@ class AppStrings {
   
   /// 同步时间
   static String get syncTime => isZh ? AppZh.syncTime : AppEn.syncTime;
+
+  /// 设备连接成功时已自动同步时间，无需手动调用
+  static String get timeAlreadySyncedOnConnect => isZh ? AppZh.timeAlreadySyncedOnConnect : AppEn.timeAlreadySyncedOnConnect;
   
   /// 查询版本
   static String get queryVersion => isZh ? AppZh.queryVersion : AppEn.queryVersion;
@@ -1635,6 +1638,46 @@ class AppStrings {
   
   /// SDK 10秒超时未返回
   static String get sdkTimeoutMessage => isZh ? AppZh.sdkTimeoutMessage : AppEn.sdkTimeoutMessage;
+
+  /// 写入SDK日志文件
+  static String get sdkLogWriteToFile => isZh ? AppZh.sdkLogWriteToFile : AppEn.sdkLogWriteToFile;
+
+  /// SDK日志写入开启说明
+  static String get sdkLogWriteEnabledDesc => isZh ? AppZh.sdkLogWriteEnabledDesc : AppEn.sdkLogWriteEnabledDesc;
+
+  /// SDK日志写入关闭说明
+  static String get sdkLogWriteDisabledDesc => isZh ? AppZh.sdkLogWriteDisabledDesc : AppEn.sdkLogWriteDisabledDesc;
+
+  /// 已开启SDK日志写入
+  static String get sdkLogWriteEnabled => isZh ? AppZh.sdkLogWriteEnabled : AppEn.sdkLogWriteEnabled;
+
+  /// 已关闭SDK日志写入
+  static String get sdkLogWriteDisabled => isZh ? AppZh.sdkLogWriteDisabled : AppEn.sdkLogWriteDisabled;
+
+  /// 正在导出SDK日志...
+  static String get sdkLogExporting => isZh ? AppZh.sdkLogExporting : AppEn.sdkLogExporting;
+
+  /// 导出SDK日志.zip
+  static String get sdkLogExportZip => isZh ? AppZh.sdkLogExportZip : AppEn.sdkLogExportZip;
+
+  /// 包含全部按天保存的日志文件，当前 {0} 个文件
+  static String sdkLogExportSubtitle(int count) => isZh
+    ? AppZh.sdkLogExportSubtitle(count) : AppEn.sdkLogExportSubtitle(count);
+
+  /// 暂无SDK日志文件可导出
+  static String get sdkLogNoFilesToExport => isZh ? AppZh.sdkLogNoFilesToExport : AppEn.sdkLogNoFilesToExport;
+
+  /// SDK日志已导出: {0}
+  static String sdkLogExported(String path) => isZh
+    ? AppZh.sdkLogExported(path) : AppEn.sdkLogExported(path);
+
+  /// SDK日志写入失败: {0}
+  static String sdkLogWriteFailed(String error) => isZh
+    ? AppZh.sdkLogWriteFailed(error) : AppEn.sdkLogWriteFailed(error);
+
+  /// SDK日志导出失败: {0}
+  static String sdkLogExportFailed(String error) => isZh
+    ? AppZh.sdkLogExportFailed(error) : AppEn.sdkLogExportFailed(error);
   
   // ==================== 补充缺少的属性 / Missing Properties ====================
   

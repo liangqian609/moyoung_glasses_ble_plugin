@@ -30,34 +30,18 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSApplicationCategoryType</key>
 	<string></string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>App-Prefs</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NEHotspotConfiguration</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-        <key>NSAllowsLocalNetworking</key>
-        <true/>
-        
-<!--		<key>NSAllowsArbitraryLoads</key>-->
-<!--		<true/>-->
-
-		<!-- 或者更精确的配置，只允许特定域名 -->
-		<!-- 
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>192.168.31.1</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-			<key>192.168.1.1</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-		-->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
 	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Use the Bluetooth to connect to your Watch</string>
@@ -112,9 +96,5 @@
 	<false/>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>App-Prefs</string>
-	</array>
 </dict>
 </plist>

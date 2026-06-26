@@ -75,6 +75,7 @@ class AppEn {
   static const String onlyJlCancellable = 'Only JL chip can be cancelled';
   static const String wifiOtaNote = 'Upgrade firmware via WiFi (cannot be cancelled)';
   static const String selectFirmwareFile = 'Please select firmware file...';
+  static const String timeAlreadySyncedOnConnect = 'Device time is synced automatically after connection, no manual action is needed';
   
   // ==================== Status Text ====================
   static const String requestPermissionStatus = 'Request Permission';
@@ -559,6 +560,18 @@ class AppEn {
   static const String gettingVersionInfo = 'Getting version info...';
   static String connectedTo(String deviceName) => 'Connected to $deviceName';
   static const String sdkTimeoutMessage = 'SDK 10 seconds timeout, no response';
+  static const String sdkLogWriteToFile = 'Write SDK logs to file';
+  static const String sdkLogWriteEnabledDesc = 'Enabled, saved locally by day';
+  static const String sdkLogWriteDisabledDesc = 'Disabled, only the latest log is displayed';
+  static const String sdkLogWriteEnabled = 'SDK log writing enabled';
+  static const String sdkLogWriteDisabled = 'SDK log writing disabled';
+  static const String sdkLogExporting = 'Exporting SDK logs...';
+  static const String sdkLogExportZip = 'Export SDK logs.zip';
+  static String sdkLogExportSubtitle(int count) => 'Includes all daily log files, current files: $count';
+  static const String sdkLogNoFilesToExport = 'No SDK log files to export';
+  static String sdkLogExported(String path) => 'SDK logs exported: $path';
+  static String sdkLogWriteFailed(String error) => 'SDK log write failed: $error';
+  static String sdkLogExportFailed(String error) => 'SDK log export failed: $error';
   
   // ==================== Missing Strings ====================
   

@@ -76,6 +76,7 @@ class AppZh {
   static const String onlyJlCancellable = '仅固件升级可取消';
   static const String wifiOtaNote = '通过WiFi升级固件（不可取消）';
   static const String selectFirmwareFile = '请选择固件文件...';
+  static const String timeAlreadySyncedOnConnect = '设备连接成功时已自动同步时间，无需手动调用';
   
   // ==================== 状态文本 / Status Text ====================
   static const String requestPermissionStatus = '申请权限';
@@ -560,6 +561,18 @@ class AppZh {
   static const String gettingVersionInfo = '正在获取版本信息...';
   static String connectedTo(String deviceName) => '已连接到 $deviceName';
   static const String sdkTimeoutMessage = 'SDK 10秒超时未返回';
+  static const String sdkLogWriteToFile = '写入SDK日志文件';
+  static const String sdkLogWriteEnabledDesc = '已开启，按天保存到本地日志文件';
+  static const String sdkLogWriteDisabledDesc = '关闭后只显示最新日志，不写入文件';
+  static const String sdkLogWriteEnabled = '已开启SDK日志写入';
+  static const String sdkLogWriteDisabled = '已关闭SDK日志写入';
+  static const String sdkLogExporting = '正在导出SDK日志...';
+  static const String sdkLogExportZip = '导出SDK日志.zip';
+  static String sdkLogExportSubtitle(int count) => '包含全部按天保存的日志文件，当前 $count 个文件';
+  static const String sdkLogNoFilesToExport = '暂无SDK日志文件可导出';
+  static String sdkLogExported(String path) => 'SDK日志已导出: $path';
+  static String sdkLogWriteFailed(String error) => 'SDK日志写入失败: $error';
+  static String sdkLogExportFailed(String error) => 'SDK日志导出失败: $error';
   
   // ==================== 补充缺少的字符串 / Missing Strings ====================
   

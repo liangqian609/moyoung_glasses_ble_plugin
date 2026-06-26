@@ -202,6 +202,14 @@ Open the `ios/Runner/Info.plist` file and add the following configuration inside
 <key>NEHotspotConfiguration</key>
 <true/>
 
+<!-- HTTP 网络访问（授权激活流程必需） -->
+<!-- HTTP network access (required for license activation flow) -->
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+</dict>
+
 <!-- URL Scheme 查询权限（用于跳转到系统设置） -->
 <!-- URL Scheme query permission (for jumping to system settings) -->
 <key>LSApplicationQueriesSchemes</key>
@@ -227,6 +235,16 @@ Open the `ios/Runner/Info.plist` file and add the following configuration inside
     <string>bluetooth-peripheral</string>
 </array>
 ```
+
+**重要注意事项 / Important Note**
+
+- `NSAppTransportSecurity` 下请仅添加 `NSAllowsArbitraryLoads = true`。
+- 不要只添加 `NSAllowsLocalNetworking` 来替代 `NSAllowsArbitraryLoads`。
+- 眼镜 SDK 的授权激活库内部包含 HTTP 请求；如果只配置 `NSAllowsLocalNetworking`，HTTP 请求仍可能被 iOS 拒绝，最终导致授权失败。
+
+- Under `NSAppTransportSecurity`, please add `NSAllowsArbitraryLoads = true`.
+- Do not use only `NSAllowsLocalNetworking` as a replacement for `NSAllowsArbitraryLoads`.
+- The glasses SDK license activation library performs internal HTTP requests. If only `NSAllowsLocalNetworking` is configured, iOS may still reject those HTTP requests, which can cause authorization to fail.
 
 #### 2.3 Wi-Fi 连接所需的关键权限
 #### 2.3 Key Permissions Required for Wi-Fi Connection
