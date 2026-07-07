@@ -37,6 +37,11 @@ pre_install do |installer|
         Pod::BuildType.dynamic_framework
       end
     end
+    if pod.name == 'MoyoungSharedFrameworks'
+      def pod.build_type
+        Pod::BuildType.dynamic_framework
+      end
+    end
   end
 end
 
@@ -44,6 +49,7 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
   pod 'SwiftProtobuf', '1.29.0'
+  pod 'MoyoungSharedFrameworks'
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
