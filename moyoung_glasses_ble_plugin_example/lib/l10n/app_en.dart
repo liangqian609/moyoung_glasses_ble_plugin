@@ -383,7 +383,6 @@ class AppEn {
   // ==================== Initial Status Text ====================
   
   // ==================== Dropdown Options ====================
-  static const String frameRate = 'Frame Rate (fps)';
   static const String maxDuration = 'Max Duration';
   static const String wifiOperationResult = 'WiFi Operation Result';
   static const String codeZeroSuccess = '(code=0 success)';
@@ -421,11 +420,6 @@ class AppEn {
   static const String enableVoiceWakeup = 'Enable Voice Wakeup';
   static const String disableVoiceWakeup = 'Disable Voice Wakeup';
   
-  // ==================== Frame Rate Options ====================
-  static const String fps15 = '15 fps';
-  static const String fps24 = '24 fps';
-  static const String fps30 = '30 fps';
-  static const String fps60 = '60 fps';
   static const String connectedDevice = 'Connected Device';
   static const String locationPermissionDenied = 'Location permission denied';
   static const String storagePermissionDenied = 'Storage permission denied';
@@ -485,7 +479,6 @@ class AppEn {
   static const String seconds = 'seconds';
   static const String duration = 'duration';
   static const String getVideoParamsFailed = 'Get video params failed';
-  static String videoParamsSet(String fpsText, int duration) => 'Video params set: $fpsText, max $duration seconds';
   static const String setVideoParamsFailed = 'Set video params failed';
   static const String sendLanguageSettingsFailed = 'Send language settings failed';
   static const String deviceShutdownFailed2 = 'Device shutdown failed';
@@ -513,7 +506,6 @@ class AppEn {
   static const String alarmSetSuccess = 'Alarm set success (7:30)';
   static const String setAlarmFailed = 'Set alarm failed';
   static String currentLanguage(String language) => 'Current language: $language';
-  static String videoConfigParams(int frameRate, int maxDuration) => 'Frame rate: ${frameRate}fps, max duration: ${maxDuration}s';
   
   // ==================== Audio Status Text ====================
   static const String stopAudio = 'Stop Audio';

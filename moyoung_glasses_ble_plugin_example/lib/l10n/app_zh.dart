@@ -384,7 +384,6 @@ class AppZh {
   // ==================== 初始状态文本 / Initial Status Text ====================
   
   // ==================== 下拉选项文本 / Dropdown Options ====================
-  static const String frameRate = '帧率 (fps)';
   static const String maxDuration = '最大时长';
   static const String wifiOperationResult = 'WiFi操作结果';
   static const String codeZeroSuccess = '(code=0成功)';
@@ -422,11 +421,6 @@ class AppZh {
   static const String enableVoiceWakeup = '开启语音唤醒';
   static const String disableVoiceWakeup = '关闭语音唤醒';
   
-  // ==================== 帧率选项 / Frame Rate Options ====================
-  static const String fps15 = '15 fps';
-  static const String fps24 = '24 fps';
-  static const String fps30 = '30 fps';
-  static const String fps60 = '60 fps';
   static const String connectedDevice = '已连接设备';
   static const String locationPermissionDenied = '位置权限被拒绝';
   static const String storagePermissionDenied = '存储权限被拒绝';
@@ -486,7 +480,6 @@ class AppZh {
   static const String seconds = '秒';
   static const String duration = '时长';
   static const String getVideoParamsFailed = '获取录像参数失败';
-  static String videoParamsSet(String fpsText, int duration) => '录像参数已设置: $fpsText, 最大$duration秒';
   static const String setVideoParamsFailed = '设置录像参数失败';
   static const String sendLanguageSettingsFailed = '发送语言设置失败';
   static const String deviceShutdownFailed2 = '设备关闭失败';
@@ -514,7 +507,6 @@ class AppZh {
   static const String alarmSetSuccess = '闹钟设置成功（7:30）';
   static const String setAlarmFailed = '设置闹钟失败';
   static String currentLanguage(String language) => '当前语言: $language';
-  static String videoConfigParams(int frameRate, int maxDuration) => '帧率: ${frameRate}fps, 最大时长: ${maxDuration}秒';
   
   // ==================== 音频状态文本 / Audio Status Text ====================
   static const String stopAudio = '停止音频';

@@ -913,10 +913,6 @@ class AppStrings {
   static String currentLanguage(String language) => isZh
     ? AppZh.currentLanguage(language) : AppEn.currentLanguage(language);
   
-  /// 录像参数: 帧率: {0}fps, 最大时长: {1}秒
-  static String videoConfigParams(int frameRate, int maxDuration) => isZh
-    ? AppZh.videoConfigParams(frameRate, maxDuration) : AppEn.videoConfigParams(frameRate, maxDuration);
-  
   /// 拍照指令已发送
   static String get photoCommandSent => isZh ? AppZh.photoCommandSent : AppEn.photoCommandSent;
   
@@ -1167,9 +1163,6 @@ class AppStrings {
   
   // ==================== 下拉选项文本 / Dropdown Options ====================
   
-  /// 帧率 (fps)
-  static String get frameRate => isZh ? AppZh.frameRate : AppEn.frameRate;
-  
   /// 最大时长
   static String get maxDuration => isZh ? AppZh.maxDuration : AppEn.maxDuration;
   
@@ -1268,20 +1261,6 @@ class AppStrings {
   
   /// 关闭语音唤醒
   static String get disableVoiceWakeup => isZh ? AppZh.disableVoiceWakeup : AppEn.disableVoiceWakeup;
-  
-  // ==================== 帧率选项 / Frame Rate Options ====================
-  
-  /// 15 fps
-  static String get fps15 => isZh ? AppZh.fps15 : AppEn.fps15;
-  
-  /// 24 fps
-  static String get fps24 => isZh ? AppZh.fps24 : AppEn.fps24;
-  
-  /// 30 fps
-  static String get fps30 => isZh ? AppZh.fps30 : AppEn.fps30;
-  
-  /// 60 fps
-  static String get fps60 => isZh ? AppZh.fps60 : AppEn.fps60;
   
   /// 已连接设备
   static String get connectedDevice => isZh ? AppZh.connectedDevice : AppEn.connectedDevice;
@@ -1458,10 +1437,6 @@ class AppStrings {
   
   /// 获取录像参数失败
   static String get getVideoParamsFailed => isZh ? AppZh.getVideoParamsFailed : AppEn.getVideoParamsFailed;
-  
-  /// 录像参数已设置: {0}, 最大{1}
-  static String videoParamsSet(String fpsText, int duration) => isZh
-    ? AppZh.videoParamsSet(fpsText, duration) : AppEn.videoParamsSet(fpsText, duration);
   
   /// 设置录像参数失败
   static String get setVideoParamsFailed => isZh ? AppZh.setVideoParamsFailed : AppEn.setVideoParamsFailed;

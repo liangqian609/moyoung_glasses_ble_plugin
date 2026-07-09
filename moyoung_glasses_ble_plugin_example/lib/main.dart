@@ -107,7 +107,6 @@ class _MyAppState extends State<MyApp> {
   String _audioTalkState = AppStrings.notSet;        // 音频控制状态
   int _selectedAudioAction = 1;            // 选择的音频动作类型
   String _bluetoothState = AppStrings.unknown;         // 蓝牙状态
-  int _selectedFrameRate = 0;             // 选择的录像帧率
   int _selectedMaxDuration = 60;          // 选择的录像最大时长
   int? _selectedVoiceWakeupAction;     // 选择的语音唤醒操作：0=开启(TypeOn)，1=关闭(TypeOff)，null=未选择
   int _currentLanguageSelection = 1;     // 当前选择的语言：0=English，1=中文
@@ -1104,8 +1103,68 @@ class _MyAppState extends State<MyApp> {
           subtitle: AppStrings.controlPhoto,
           enabled: _isConnected,
         ),
-        // 视频功能暂时禁用
-        /*
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.withOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.timer, color: Colors.blue[600], size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${AppStrings.duration}:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue[600],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButton<int>(
+                      value: _selectedMaxDuration,
+                      isExpanded: true,
+                      items: [
+                        DropdownMenuItem(
+                          value: 30,
+                          child: Text(AppStrings.seconds30),
+                        ),
+                        DropdownMenuItem(
+                          value: 60,
+                          child: Text(AppStrings.seconds60),
+                        ),
+                        DropdownMenuItem(
+                          value: 120,
+                          child: Text(AppStrings.seconds120),
+                        ),
+                        DropdownMenuItem(
+                          value: 300,
+                          child: Text(AppStrings.seconds300),
+                        ),
+                      ],
+                      onChanged: _isConnected
+                          ? (int? value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedMaxDuration = value;
+                                });
+                              }
+                            }
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
         _buildApiButton(
           AppStrings.startVideo,
           Icons.videocam,
@@ -1120,7 +1179,20 @@ class _MyAppState extends State<MyApp> {
           subtitle: AppStrings.stopVideoFunction,
           enabled: _isConnected,
         ),
-        */
+        _buildApiButton(
+          AppStrings.getVideoDefaultParams,
+          Icons.info,
+          _queryVideoConfig,
+          subtitle: AppStrings.getVideoDefaultParams,
+          enabled: _isConnected,
+        ),
+        _buildApiButton(
+          AppStrings.setVideoDefaultParams,
+          Icons.tune,
+          _setVideoConfig,
+          subtitle: AppStrings.setVideoDefaultParams,
+          enabled: _isConnected,
+        ),
       ],
     );
   }
@@ -2218,36 +2290,45 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  // 暂时禁用
-  // void _startVideo() async {
-  //   try {
-  //     await _glassesPlugin.startVideo(fps: 30, maxDuration: 10);
-  //   } catch (e) {
-  //     _showToast(AppStrings.videoStartFailed + ": $e");
-  //   }
-  // }
+  void _startVideo() async {
+    try {
+      await _glassesPlugin.startVideo(
+        duration: _selectedMaxDuration,
+      );
+      _showToast(AppStrings.videoStartSuccess);
+    } catch (e) {
+      _showToast(AppStrings.videoStartFailed + ": $e");
+    }
+  }
 
-  // 暂时禁用
-  // void _stopVideo() async {
-  //   try {
-  //     await _glassesPlugin.stopVideo();
-  //   } catch (e) {
-  //     _showToast(AppStrings.videoStopFailed + ": $e");
-  //   }
-  // }
-  
+  void _stopVideo() async {
+    try {
+      await _glassesPlugin.stopVideo();
+      _showToast(AppStrings.videoStopCommandSent);
+    } catch (e) {
+      _showToast(AppStrings.videoStopFailed + ": $e");
+    }
+  }
+
+  void _queryVideoConfig() async {
+    try {
+      final config = await _glassesPlugin.queryVideoConfig();
+      final maxDuration = (config['maxDuration'] as num?)?.toInt() ??
+          (config['duration'] as num?)?.toInt() ??
+          0;
+      _showToast(AppStrings.videoParams(
+          '${AppStrings.duration}: $maxDuration${AppStrings.seconds}'));
+    } catch (e) {
+      _showToast(AppStrings.getVideoParamsFailed + ": $e");
+    }
+  }
+
   void _setVideoConfig() async {
     try {
-      // 使用用户选择的录像参数
-      Map<String, dynamic> config = {
-        "frameRate": _selectedFrameRate,
-        "duration": _selectedMaxDuration,  // 注意：iOS端使用 duration 而不是 maxDuration
-      };
-      // await _glassesPlugin.sendVideoConfig(config); // 暂时禁用
-      _showToast("视频配置功能暂时禁用");
-      
-      String fpsText = _selectedFrameRate == 0 ? AppStrings.notSet : '$_selectedFrameRate fps';
-      _showToast(AppStrings.videoParamsSet(fpsText, _selectedMaxDuration));
+      await _glassesPlugin.sendVideoConfig(maxDuration: _selectedMaxDuration);
+
+      _showToast(AppStrings.videoParams(
+          '${AppStrings.duration}: $_selectedMaxDuration${AppStrings.seconds}'));
     } catch (e) {
       _showToast(AppStrings.setVideoParamsFailed + ": $e");
     }
